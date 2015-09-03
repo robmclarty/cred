@@ -1,22 +1,23 @@
-// Look up user associated with token and verify that they have admin priviledges.
-exports.requireAdmin = function (req, res, callback) {
-  var decoded = req.decoded;
-
-  // Assumes that requireValidToken has already run on the request.
-  if (!decoded) {
+// Look up session associated with JWT and verify that it has admin priviledges.
+// req.session is created in the token_middleware which parses a JWT sent with
+// the current request.
+exports.requireAdmin = function (req, res, next) {
+  if (!req.session) {
     return res.status(403).send({
       success: false,
-      message: 'No valid token.'
+      message: 'No session exists.'
     });
   }
 
-  // Check if the user associated with the token is an admin; if not, they're unauthorized.
-  if (!decoded.user.isAdmin) {
+  // Check if the session is for an admin; if not, they're unauthorized.
+  // TODO: This could be extended to create other middlewares that check on a possible
+  // "roles" property to see if a particulr role (in this case "admin") exists.
+  if (!req.session.isAdmin) {
     return res.status(403).send({
       success: false,
       message: 'You are not authorized to access this resource.'
     });
   }
 
-  return callback();
+  next();
 };

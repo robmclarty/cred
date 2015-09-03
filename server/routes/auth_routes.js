@@ -5,7 +5,7 @@ var authController = require('../controllers/auth_controller');
 router.route('/authenticate')
   .post(authController.postAuthenticate);
 
-router.route('/check')
-  .get(authController.getCheck);
+router.route('/session')
+  .get(authController.getSession);
 
 module.exports = router;

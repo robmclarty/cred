@@ -1,4 +1,4 @@
-//var Resource = require('../models/resource');
+var Resource = require('../models/resource');
 
 exports.postResources = function (req, res) {
 

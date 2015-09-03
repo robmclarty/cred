@@ -8,10 +8,13 @@ A simple JWT-authenticated API server.
 
 ### Authenticate
 
+Here, I'm logging in with a user called "admin" using a password "password". This
+user already exsists in the database with those credentials.
+
 #### request
 
 ```
-curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password"}' http://localhost:3000/api/authenticate
+curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password"}' http://localhost:3000/authenticate
 ```
 
 #### response
@@ -20,7 +23,7 @@ curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "passw
 {
   "success": true,
   "message": "Enjoy your token!",
-  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1NWU3M2I3YmY3YmY0ZWE1NjlmYzM0MzciLCJ1c2VybmFtZSI6ImFkbWluIiwicGFzc3dvcmQiOiJwYXNzd29yZCIsImFkbWluIjp0cnVlLCJfX3YiOjB9.7NnGu1beCvhaNSemZ10Ppf89m3CEQIAmyqWzSUHjfLc"
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc"
 }
 ```
 
@@ -29,7 +32,11 @@ curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "passw
 #### request
 
 ```
-curl -X GET -H "x-access-token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1NWU3M2I3YmY3YmY0ZWE1NjlmYzM0MzciLCJ1c2VybmFtZSI6ImFkbWluIiwicGFzc3dvcmQiOiJwYXNzd29yZCIsImFkbWluIjp0cnVlLCJfX3YiOjB9.7NnGu1beCvhaNSemZ10Ppf89m3CEQIAmyqWzSUHjfLc" http://localhost:3000/api/users
+curl -X GET -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc" http://localhost:3000/api/users
+
+curl -X GET -H "x-access-token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc" http://localhost:3000/api/users
+
+curl -X GET http://localhost:3000/api/users?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc
 ```
 
 #### response
@@ -39,7 +46,7 @@ curl -X GET -H "x-access-token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI
   {
     "_id": "55e73b7bf7bf4ea569fc3437",
     "username": "admin",
-    "password": "password",
+    "password": "[encrypted]",
     "admin": true,
     "__v": 0
   },
@@ -47,6 +54,22 @@ curl -X GET -H "x-access-token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI
 ]
 ```
 
-create user
+### Create a New User
 
-curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password", "isAdmin":true}' http://localhost:3000/api/users
+Creating users requires both a valid token + a user that is an admin (their
+token has `isAdmin` set to true). New users default to `isAdmin` being `false`.
+
+#### request
+
+```
+curl -X POST -H "Content-Type: application/json" -d '{"username":"rob", "password":"password"}' -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc" http://localhost:3000/api/users
+```
+
+#### response
+
+```
+{
+  "success": true,
+  "message": "New user added."
+}
+```

@@ -35,8 +35,17 @@ exports.postAuthenticate = function (req, res) {
         });
       }
 
-      // Success; make a new token and send it back.
-      var token = jwt.sign(user, apiSecret, {
+      // Create the payload for the token; the 'session' for this user.
+      // TODO: maybe make a method on user called "sessionPayload" or something
+      // generates the payload object from itself.
+      var payload = {
+        id: user.id,
+        username: user.username,
+        isAdmin: user.isAdmin
+      };
+
+      // Make a new token and send it back.
+      var token = jwt.sign(payload, apiSecret, {
         expiresInMinutes: 1440 // expires in 24 hours
       });
 
@@ -49,7 +58,7 @@ exports.postAuthenticate = function (req, res) {
   });
 };
 
-// Takes a token and returns the decoded payload.
-exports.getCheck = function (req, res) {
-  res.json(req.decoded);
+// Takes a token and returns the decoded payload session.
+exports.getSession = function (req, res) {
+  res.json(req.session);
 };
