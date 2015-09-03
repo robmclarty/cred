@@ -4,7 +4,7 @@ var bodyParser = require('body-parser');
 var morgan = require('morgan');
 var mongoose = require('mongoose');
 var jwt = require('jsonwebtoken');
-var settings = require('./config/settings');
+var settings = require('../config/settings');
 var User = require('./models/user');
 
 // Config.
@@ -23,7 +23,7 @@ app.use(morgan('dev'));
 // =============================================================================
 app.get('/setup', function (req, res) {
   var adminUser = new User({
-    name: 'admin',
+    username: 'admin',
     password: 'password',
     admin: true
   });
@@ -106,7 +106,7 @@ apiRoutes.use(function (req, res, callback) {
 
 // Authenticated Routes
 // =============================================================================
-apiRoute.get('/', function (req, res) {
+apiRoutes.get('/', function (req, res) {
   res.json({
     message: 'Welcome to the coolest API on earth!'
   });
