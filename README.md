@@ -46,3 +46,7 @@ curl -X GET -H "x-access-token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI
   ...
 ]
 ```
+
+create user
+
+curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password", "isAdmin":true}' http://localhost:3000/api/users
