@@ -32,15 +32,10 @@ curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "passw
 Once authenticated and in the possession of a token, you can make requests
 against the server, supplying the token in one of four different ways:
 
-1. authorization header (bearer token)
-2. x-access-token header
-3. query parameter
-4. post body
-
 #### request
 
 ```shell
-# 1. authorization header
+# 1. authorization header (bearer token)
 curl -X GET -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRhNGI0NGZkZmExM2Y4ZDJhNCIsInVzZXJuYW1lIjoiYWRtaW4iLCJpc0FkbWluIjp0cnVlLCJpYXQiOjE0NDEzMDg1NTgsImV4cCI6MTQ0MTM5NDk1OH0.5BV4kzoBbfcpYIdoyV21WMxL6PNYjmFcv6VSUsJL6Sc" http://localhost:3000/api/users
 
 # 2. x-access-token header
