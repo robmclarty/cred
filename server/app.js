@@ -12,6 +12,9 @@ var rootRoutes = require('./routes/root_routes');
 var userRoutes = require('./routes/user_routes');
 var resourceRoutes = require('./routes/resource_routes');
 
+var errorHandler = require('./middleware/error_middleware').errorHandler;
+var pageNotFound = require('./middleware/error_middleware').pageNotFound;
+
 // Config.
 var port = process.env.PORT || 3000;
 mongoose.connect(config.database);
@@ -39,6 +42,18 @@ app.use('/api', [
   userRoutes,
   resourceRoutes
 ]);
+
+// Anything that didn't match the above routes, is a 404.
+app.get('*', function (req, res, next) {
+  var err = new Error();
+  err.status = 404;
+
+  next(err);
+});
+
+// Error handlers.
+app.use(pageNotFound);
+app.use(errorHandler);
 
 // Start the server.
 app.listen(port);

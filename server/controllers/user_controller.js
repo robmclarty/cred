@@ -1,6 +1,6 @@
 var User = require('../models/user');
 
-exports.postUsers = function (req, res) {
+exports.postUsers = function (req, res, next) {
   var user = new User({
     username: req.body.username,
     password: req.body.password,
@@ -9,7 +9,7 @@ exports.postUsers = function (req, res) {
 
   user.save(function (err) {
     if (err) {
-      throw err;
+      return next(err);
     }
 
     res.json({
@@ -19,10 +19,10 @@ exports.postUsers = function (req, res) {
   });
 };
 
-exports.getUsers = function (req, res) {
+exports.getUsers = function (req, res, next) {
   User.find({}, function (err, users) {
     if (err) {
-      throw err;
+      return next(err);
     }
 
     res.json({

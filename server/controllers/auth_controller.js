@@ -2,14 +2,14 @@ var jwt = require('jsonwebtoken');
 var User = require('../models/user');
 
 // Takes a username + password and returns a token.
-exports.postAuthenticate = function (req, res) {
+exports.postAuthenticate = function (req, res, next) {
   var apiSecret = req.app.get('api-secret');
   var username = req.body.username;
   var password = req.body.password;
 
   User.findOne({ username: username }, function (findError, user) {
     if (findError) {
-      throw findError;
+      return next(findError);
     }
 
     // No user found with that username.
@@ -23,7 +23,7 @@ exports.postAuthenticate = function (req, res) {
     // Make sure the password is correct.
     user.verifyPassword(password, function (passwordError, isMatch) {
       if (passwordError) {
-        throw passwordError;
+        return next(passwordError);
       }
 
       // Password did not match.
