@@ -14,10 +14,10 @@ exports.postAuthenticate = function (req, res, next) {
 
     // No user found with that username.
     if (!user) {
-      res.json({
-        success: false,
-        message: 'Authentication failed. User not found.'
-      });
+      findError.message = 'Authentication failed. User not found.';
+      findError.status = 400;
+
+      return next(findError);
     }
 
     // Make sure the password is correct.
@@ -28,11 +28,10 @@ exports.postAuthenticate = function (req, res, next) {
 
       // Password did not match.
       if (!isMatch) {
-        res.json({
-          success: false,
-          message: 'Authentication failed. Wrong password.',
-          error: passwordError
-        });
+        passwordError.message = 'Authentication failed. Wrong password.';
+        passwordError.status = 400;
+
+        return next(passwordError);
       }
 
       // Create the payload for the token; the 'session' for this user.

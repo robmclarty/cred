@@ -20,22 +20,22 @@ module.exports = function (req, res, next) {
   var token = getTokenFromRequest(req);
 
   if (!token) {
-    return res.status(403).send({
-      success: false,
-      message: 'No token provided.'
-    });
-  } else {
-    jwt.verify(token, apiSecret, function (err, decodedPayload) {
-      if (err) {
-        return res.json({
-          success: false,
-          message: 'Failed to authenticate token.'
-        });
-      } else {
-        req.session = decodedPayload;
+    var noTokenError = new Error('No token provided.');
+    noTokenError.status = 403;
 
-        next();
+    return next(noTokenError);
+  } else {
+    jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
+      if (invalidTokenError) {
+        invalidTokenError.message = 'Failed to authenticate token.';
+        invalidTokenError.status = 403;
+
+        return next(invalidTokenError);
       }
+
+      req.session = decodedPayload;
+
+      return next();
     });
   }
 };

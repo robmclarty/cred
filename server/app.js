@@ -6,14 +6,13 @@ var mongoose = require('mongoose');
 var jwt = require('jsonwebtoken');
 var config = require('./config');
 
+var errorHandler = require('./middleware/error_middleware');
 var requireValidToken = require('./middleware/token_middleware');
+
 var authRoutes = require('./routes/auth_routes');
 var rootRoutes = require('./routes/root_routes');
 var userRoutes = require('./routes/user_routes');
 var resourceRoutes = require('./routes/resource_routes');
-
-var errorHandler = require('./middleware/error_middleware').errorHandler;
-var pageNotFound = require('./middleware/error_middleware').pageNotFound;
 
 // Config.
 var port = process.env.PORT || 3000;
@@ -43,17 +42,11 @@ app.use('/api', [
   resourceRoutes
 ]);
 
-// Anything that didn't match the above routes, is a 404.
-app.get('*', function (req, res, next) {
-  var err = new Error();
-  err.status = 404;
-
-  next(err);
-});
-
 // Error handlers.
-app.use(pageNotFound);
-app.use(errorHandler);
+app.use(errorHandler.unauthorized);
+app.use(errorHandler.badRequest);
+app.use(errorHandler.genericError);
+app.use(errorHandler.pageNotFound);
 
 // Start the server.
 app.listen(port);
