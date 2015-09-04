@@ -28,5 +28,10 @@ gulp.task('seed', function () {
 });
 
 gulp.task('lint', function () {
+  var eslint = require('gulp-eslint');
 
+  return gulp
+    .src(['./server/**/*'])
+    .pipe(eslint())
+    .pipe(eslint.format());
 });
