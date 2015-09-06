@@ -1,6 +1,6 @@
 exports.unauthorized = function (err, req, res, next) {
   if (err.status !== 403) {
-    return next();
+    return next(err);
   }
 
   res.status(403).send({
@@ -12,7 +12,7 @@ exports.unauthorized = function (err, req, res, next) {
 
 exports.badRequest = function (err, req, res, next) {
   if (err.status !== 400) {
-    return next();
+    return next(err);
   }
 
   res.status(400).send({
@@ -24,8 +24,6 @@ exports.badRequest = function (err, req, res, next) {
 
 // If there's still an error at this point, return a generic 500 error.
 exports.genericError = function (err, req, res, next) {
-  console.error(err.stack);
-
   res.status(500).send({
     success: false,
     message: err.message || 'Internal server error.',
