@@ -3,16 +3,7 @@ var app = express();
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
 var mongoose = require('mongoose');
-var jwt = require('jsonwebtoken');
 var config = require('./config');
-
-var errorHandler = require('./middleware/error_middleware');
-var requireValidToken = require('./middleware/token_middleware');
-
-var authRoutes = require('./routes/auth_routes');
-var rootRoutes = require('./routes/root_routes');
-var userRoutes = require('./routes/user_routes');
-var resourceRoutes = require('./routes/resource_routes');
 
 // Config.
 var port = process.env.PORT || 3000;
@@ -29,6 +20,12 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes.
+var authRoutes = require('./routes/auth_routes');
+var apiRoutes = require('./routes/api_routes');
+var userRoutes = require('./routes/user_routes');
+var resourceRoutes = require('./routes/resource_routes');
+var requireValidToken = require('./middleware/token_middleware');
+
 app.get('/', function (req, res) {
   res.send('Hello! The API is at http://localhost:' + port + '/api');
 });
@@ -37,12 +34,14 @@ app.use('/', authRoutes);
 
 app.use('/api', [
   requireValidToken, // All API routes require a valid token.
-  rootRoutes,
+  apiRoutes,
   userRoutes,
   resourceRoutes
 ]);
 
 // Error handlers.
+var errorHandler = require('./middleware/error_middleware');
+
 app.use(errorHandler.unauthorized);
 app.use(errorHandler.badRequest);
 app.use(errorHandler.genericError);
