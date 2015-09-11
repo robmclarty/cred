@@ -321,19 +321,19 @@ super-computer... the jury's still out on quantum computers).
 
 - **CSRF doesn't matter**: because if you don't have a token, you can't do
   anything; since we don't need to rely on cookies, we don't need to protect
-  against cross site requests (e.g., it would not be possible to <iframe> our
+  against cross site requests (e.g., it would not be possible to `<iframe>` our
   site, generate a POST request, and re-use the existing authentication cookie
   because there will be none)
 
 - **good performance**: a network round-trip (e.g., finding a session in the
-database, deserializing it, then extracting the information we're interested
-in) is likely to take more time than calculating a HMACSHA256 to validate a
-token and parse its contents
+  database, deserializing it, then extracting the information we're interested
+  in) is likely to take more time than calculating a HMACSHA256 to validate a
+  token and parse its contents
 
 - **standard-based**: read the spec: [RFC 7519](https://tools.ietf.org/html/rfc7519)
-supported by multiple backend libraries (.NET, Ruby, Java, Python, PHP,
-Javascript), and companies backing their infrastructure (e.g., Firebase,
-Google, Microsoft, Zendesk).
+  supported by multiple backend libraries (.NET, Ruby, Java, Python, PHP,
+  Javascript), and companies backing their infrastructure (e.g., Firebase,
+  Google, Microsoft, Zendesk).
 
 
 ## References
