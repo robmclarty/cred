@@ -1,6 +1,8 @@
-var express = require('express');
-var router = express.Router();
-var resourceController = require('../controllers/resource_controller');
+'use strict';
+
+let express = require('express');
+let router = express.Router();
+let resourceController = require('../controllers/resource_controller');
 
 router.route('/resources')
   .post(resourceController.postResources)

@@ -1,7 +1,9 @@
-var express = require('express');
-var router = express.Router();
-var userController = require('../controllers/user_controller');
-var requireAdmin = require('../middleware/admin_middleware');
+'use strict';
+
+let express = require('express');
+let router = express.Router();
+let userController = require('../controllers/user_controller');
+let requireAdmin = require('../middleware/admin_middleware');
 
 router.route('/users')
   .post(userController.postUsers)

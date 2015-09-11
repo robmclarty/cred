@@ -1,7 +1,9 @@
-var Resource = require('../models/resource');
+'use strict';
+
+let Resource = require('../models/resource');
 
 exports.postResources = function (req, res, next) {
-  var resource = new Resource({
+  let resource = new Resource({
     name: req.body.name,
     description: req.body.description || '',
     notes: req.body.notes || ''
@@ -49,7 +51,7 @@ exports.getResource = function (req, res, next) {
 };
 
 exports.putResource = function (req, res, next) {
-  var update = {
+  let update = {
     name: req.body.name,
     description: req.body.description,
     notes: req.body.notes
@@ -78,6 +80,6 @@ exports.deleteResource = function (req, res, next) {
       success: true,
       message: 'Resource deleted.',
       resource: resource
-    })
+    });
   });
 };

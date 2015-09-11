@@ -1,4 +1,6 @@
-var jwt = require('jsonwebtoken');
+'use strict';
+
+let jwt = require('jsonwebtoken');
 
 // If a bearer token has been sent in the authorization header, use that,
 // otherwise, check if a token was sent in the request body, as a parameter, or
@@ -16,26 +18,26 @@ function getTokenFromRequest(req) {
 // Checks for the presence of a JWT token called 'token' and verifies that it
 // is valid by comparing it against the secret.
 module.exports = function (req, res, next) {
-  var apiSecret = req.app.get('api-secret');
-  var token = getTokenFromRequest(req);
+  let apiSecret = req.app.get('api-secret');
+  let token = getTokenFromRequest(req);
 
   if (!token) {
-    var noTokenError = new Error('No token provided.');
+    let noTokenError = new Error('No token provided.');
     noTokenError.status = 403;
 
     return next(noTokenError);
-  } else {
-    jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
-      if (invalidTokenError) {
-        invalidTokenError.message = 'Failed to authenticate token.';
-        invalidTokenError.status = 403;
-
-        return next(invalidTokenError);
-      }
-
-      req.session = decodedPayload;
-
-      return next();
-    });
   }
+
+  jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
+    if (invalidTokenError) {
+      invalidTokenError.message = 'Failed to authenticate token.';
+      invalidTokenError.status = 403;
+
+      return next(invalidTokenError);
+    }
+
+    req.session = decodedPayload;
+
+    return next();
+  });
 };

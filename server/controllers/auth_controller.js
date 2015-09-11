@@ -1,11 +1,13 @@
-var jwt = require('jsonwebtoken');
-var User = require('../models/user');
+'use strict';
+
+let jwt = require('jsonwebtoken');
+let User = require('../models/user');
 
 // Takes a username + password and returns a token.
 exports.postAuthenticate = function (req, res, next) {
-  var apiSecret = req.app.get('api-secret');
-  var username = req.body.username;
-  var password = req.body.password;
+  let apiSecret = req.app.get('api-secret');
+  let username = req.body.username;
+  let password = req.body.password;
 
   User.findOne({ username: username }, function (findError, user) {
     if (findError) {
@@ -37,14 +39,14 @@ exports.postAuthenticate = function (req, res, next) {
       // Create the payload for the token; the 'session' for this user.
       // TODO: maybe make a method on user called "sessionPayload" or something
       // generates the payload object from itself.
-      var payload = {
+      let payload = {
         id: user.id,
         username: user.username,
         isAdmin: user.isAdmin
       };
 
       // Make a new token and send it back.
-      var token = jwt.sign(payload, apiSecret, {
+      let token = jwt.sign(payload, apiSecret, {
         expiresInMinutes: 1440 // expires in 24 hours
       });
 

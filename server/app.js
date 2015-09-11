@@ -1,13 +1,17 @@
-var express = require('express');
-var app = express();
-var bodyParser = require('body-parser');
-var morgan = require('morgan');
-var mongoose = require('mongoose');
-var config = require('./config');
+'use strict';
+
+let express = require('express');
+let bodyParser = require('body-parser');
+let morgan = require('morgan');
+let mongoose = require('mongoose');
+let config = require('./config');
 
 // Config.
-var port = process.env.PORT || 3000;
+let app = express();
+let port = process.env.PORT || 3000;
+
 mongoose.connect(config.database);
+
 app.set('api-secret', config.secret);
 
 // Use body-parser to get info from POST and/or URL parameters.
@@ -20,11 +24,11 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Routes.
-var authRoutes = require('./routes/auth_routes');
-var apiRoutes = require('./routes/api_routes');
-var userRoutes = require('./routes/user_routes');
-var resourceRoutes = require('./routes/resource_routes');
-var requireValidToken = require('./middleware/token_middleware');
+let authRoutes = require('./routes/auth_routes');
+let apiRoutes = require('./routes/api_routes');
+let userRoutes = require('./routes/user_routes');
+let resourceRoutes = require('./routes/resource_routes');
+let requireValidToken = require('./middleware/token_middleware');
 
 app.get('/', function (req, res) {
   res.send('Hello! The API is at http://localhost:' + port + '/api');
@@ -40,7 +44,7 @@ app.use('/api', [
 ]);
 
 // Error handlers.
-var errorHandler = require('./middleware/error_middleware');
+let errorHandler = require('./middleware/error_middleware');
 
 app.use(errorHandler.unauthorized);
 app.use(errorHandler.badRequest);
@@ -49,4 +53,5 @@ app.use(errorHandler.pageNotFound);
 
 // Start the server.
 app.listen(port);
+
 console.log('Server started at port ' + port);

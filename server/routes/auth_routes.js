@@ -1,6 +1,8 @@
-var express = require('express');
-var router = express.Router();
-var authController = require('../controllers/auth_controller');
+'use strict';
+
+let express = require('express');
+let router = express.Router();
+let authController = require('../controllers/auth_controller');
 
 router.route('/authenticate')
   .post(authController.postAuthenticate);

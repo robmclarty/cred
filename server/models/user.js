@@ -1,14 +1,17 @@
-var mongoose = require('mongoose');
-var bcrypt = require('bcrypt-nodejs');
+'use strict';
 
-var UserSchema = new mongoose.Schema({
+let mongoose = require('mongoose');
+let bcrypt = require('bcrypt-nodejs');
+
+let UserSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   isAdmin: { type: Boolean, default: false }
 });
 
+// Hash the password before each save (never save password as plain text).
 UserSchema.pre('save', function (callback) {
-  var user = this;
+  let user = this;
 
   // Break out if the password hasn't changed.
   if (!user.isModified('password')) {

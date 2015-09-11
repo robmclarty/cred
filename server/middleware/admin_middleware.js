@@ -1,3 +1,5 @@
+'use strict';
+
 // Look up session associated with JWT and verify that it has admin priviledges.
 // req.session is created in the token_middleware which parses a JWT sent with
 // the current request.

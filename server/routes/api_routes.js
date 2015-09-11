@@ -1,5 +1,7 @@
-var express = require('express');
-var router = express.Router();
+'use strict';
+
+let express = require('express');
+let router = express.Router();
 
 // Base routes for /api.
 router.route('/')

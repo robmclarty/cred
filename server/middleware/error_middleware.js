@@ -1,3 +1,5 @@
+'use strict';
+
 exports.unauthorized = function (err, req, res, next) {
   if (err.status !== 403) {
     return next(err);

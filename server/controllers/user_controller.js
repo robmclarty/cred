@@ -1,7 +1,9 @@
-var User = require('../models/user');
+'use strict';
+
+let User = require('../models/user');
 
 exports.postUsers = function (req, res, next) {
-  var user = new User({
+  let user = new User({
     username: req.body.username,
     password: req.body.password,
     isAdmin: req.body.isAdmin
