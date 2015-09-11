@@ -3,7 +3,7 @@
 // Look up session associated with JWT and verify that it has admin priviledges.
 // req.session is created in the token_middleware which parses a JWT sent with
 // the current request.
-exports.requireAdmin = function (req, res, next) {
+module.exports = function requireAdmin(req, res, next) {
   // Verify that a "session" exists on the request.
   if (!req.session) {
     let noSessionError = new Error('No session exists.');
