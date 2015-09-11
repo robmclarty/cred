@@ -1,16 +1,16 @@
 'use strict';
 
-import gulp from 'gulp';
-import mongoose from 'mongoose';
-import config from './server/config';
-import User from './server/models/user';
+var gulp = require('gulp-param')(require('gulp'), process.argv);
+var mongoose = require('mongoose');
+var config = require('./server/config');
+var User = require('./server/models/user');
 
 // Seed the database with some initial data (e.g., default admin user).
 gulp.task('createUser', function (username, password, admin) {
   mongoose.connect(config.database);
 
   // Create default admin user.
-  let newUser = new User({
+  var newUser = new User({
     username: username,
     password: password,
     isAdmin: admin || false
@@ -29,7 +29,7 @@ gulp.task('createUser', function (username, password, admin) {
 });
 
 gulp.task('lint', function () {
-  let eslint = require('gulp-eslint');
+  var eslint = require('gulp-eslint');
 
   return gulp
     .src(['./server/**/*'])

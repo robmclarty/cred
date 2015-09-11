@@ -6,7 +6,7 @@ let userController = require('../controllers/user_controller');
 let requireAdmin = require('../middleware/admin_middleware');
 
 router.route('/users')
-  .post(userController.postUsers)
+  .post(requireAdmin, userController.postUsers)
   .get(userController.getUsers);
 
 router.route('/users/:id')
