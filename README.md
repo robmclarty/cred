@@ -2,10 +2,35 @@
 
 A simple JWT-authenticated API server.
 
+
+## Installation
+
+Install the dependencies, create a default user, and start'er up!
+
+```shell
+  npm install
+
+  gulp createUser -u admin -p password -a true
+
+  npm start
+```
+
+
+## Why?
+
+Because after years of smashing cookies into oauths, JWT is a breath of fresh
+air that has all the security features you'd want, with a lot less headache.
+Plus you can do stuff with JWT you can't do with other systems.
+
+I wrote [this article](JWT.md) about how JWT works compared to cookie-based
+sessions if you want to read more ;)
+
+
 ## Usage
 
-`> node server/app`
-
+```shell
+  npm start
+```
 
 ### Authenticate
 
