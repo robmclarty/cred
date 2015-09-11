@@ -326,14 +326,14 @@ super-computer... the jury's still out on quantum computers).
   because there will be none)
 
 - **good performance**: a network round-trip (e.g., finding a session in the
-  database, deserializing it, then extracting the information we're interested
-  in) is likely to take more time than calculating a HMACSHA256 to validate a
-  token and parse its contents
+database, deserializing it, then extracting the information we're interested
+in) is likely to take more time than calculating a HMACSHA256 to validate a
+token and parse its contents
 
 - **standard-based**: read the spec: [RFC 7519](https://tools.ietf.org/html/rfc7519)
-  supported by multiple backend libraries (.NET, Ruby, Java, Python, PHP,
-  Javascript), and companies backing their infrastructure (e.g., Firebase,
-  Google, Microsoft, Zendesk).
+supported by multiple backend libraries (.NET, Ruby, Java, Python, PHP,
+Javascript), and companies backing their infrastructure (e.g., Firebase,
+Google, Microsoft, Zendesk).
 
 
 ## References
