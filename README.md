@@ -64,8 +64,7 @@ curl -X POST -d "token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU1ZTc1MzRh
     "password": "[encrypted]",
     "admin": true,
     "__v": 0
-  },
-  ...
+  }
 ]
 ```
 
