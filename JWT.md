@@ -339,6 +339,7 @@ super-computer... the jury's still out on quantum computers).
 ## References
 
 - [node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
+- [Why Cookies are Bad](http://www.kb.cert.org/vuls/id/804060)
 - [Make your Angular app a max security prison](https://www.youtube.com/watch?v=lDb_GANDR8U) (video)
 - [MNUG 2014 - Lightning talk: JWT: JSON Web Token](https://www.youtube.com/watch?v=eWUkxzyB1Rk) (video)
 - [Auth0](https://auth0.com/docs/jwt)
