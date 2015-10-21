@@ -1,30 +1,57 @@
 'use strict';
 
 var gulp = require('gulp-param')(require('gulp'), process.argv);
-var mongoose = require('mongoose');
 var config = require('./server/config');
-var User = require('./server/models/user');
+
+// List existing users in the database by username.
+gulp.task('listUsers', function() {
+  var Waterline = require('waterline');
+  var orm = new Waterline();
+  var User = require('./server/models/user');
+
+  orm.loadCollection(User);
+
+  orm.initialize(config.database, function (err, models) {
+    if (err) {
+      throw err;
+    }
+
+    models.collections.user.find({}, function (err, users) {
+      users.forEach((user) => {
+        console.log(user.username);
+      });
+      process.exit();
+    });
+  });
+});
 
 // Seed the database with some initial data (e.g., default admin user).
 gulp.task('createUser', function (username, password, admin) {
-  mongoose.connect(config.database);
+  var Waterline = require('waterline');
+  var orm = new Waterline();
+  var User = require('./server/models/user');
 
-  // Create default admin user.
-  var newUser = new User({
-    username: username,
-    password: password,
-    isAdmin: admin || false
-  });
+  orm.loadCollection(User);
 
-  // Save admin user to database.
-  newUser.save(function (err) {
+  orm.initialize(config.database, function (err, models) {
     if (err) {
-      console.log(err.toString());
-      process.exit(1);
+      throw err;
     }
 
-    console.log('User ' + username + ' created.');
-    process.exit();
+    var newUser = {
+      username: username,
+      password: password,
+      isAdmin: admin || false
+    };
+
+    models.collections.user.create(newUser, function (userErr, user) {
+      if (userErr) {
+        throw userErr;
+      }
+
+      console.log(`User ${username} created.`);
+      process.exit();
+    });
   });
 });
 

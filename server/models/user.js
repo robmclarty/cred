@@ -1,49 +1,69 @@
 'use strict';
 
-let mongoose = require('mongoose');
+let Waterline = require('waterline');
 let bcrypt = require('bcrypt-nodejs');
 
-let UserSchema = new mongoose.Schema({
-  username: { type: String, unique: true, required: true },
-  password: { type: String, required: true },
-  isAdmin: { type: Boolean, default: false }
-});
-
-// Hash the password before each save (never save password as plain text).
-UserSchema.pre('save', function (callback) {
-  let user = this;
-
-  // Break out if the password hasn't changed.
-  if (!user.isModified('password')) {
-    return callback();
-  }
-
-  // Password changed so we need to hash it.
+function afterValidate(values, next) {
   bcrypt.genSalt(10, function (saltError, salt) {
     if (saltError) {
-      return callback(saltError);
+      return next(saltError);
     }
 
-    bcrypt.hash(user.password, salt, null, function (hashError, hash) {
+    bcrypt.hash(values.password, salt, null, function (hashError, hash) {
       if (hashError) {
-        return callback(hashError);
+        return next(hashError);
       }
 
-      user.password = hash;
-
-      callback();
+      values.password = hash;
+      next();
     });
   });
-});
+}
 
-UserSchema.methods.verifyPassword = function (password, callback) {
+function verifyPassword(password, next) {
   bcrypt.compare(password, this.password, function (err, isMatch) {
     if (err) {
-      return callback(err);
+      return next(err);
     }
 
-    callback(null, isMatch);
+    next(null, isMatch);
   });
-};
+}
 
-module.exports = mongoose.model('User', UserSchema);
+function toJSON() {
+  return {
+    username: this.username,
+    isAdmin: this.isAdmin
+  };
+}
+
+let User = Waterline.Collection.extend({
+  identity: 'user',
+  connection: 'local-mongo',
+  tableName: 'users',
+  migrate: 'safe',
+
+  afterValidate: afterValidate,
+
+  attributes: {
+    username: {
+      type: 'string',
+      unique: true,
+      required: true
+    },
+    password: {
+      type: 'string',
+      minLength: 6,
+      required: true
+    },
+    isAdmin: {
+      type: 'boolean',
+      defaultsTo: false
+    },
+
+    verifyPassword: verifyPassword,
+    toJSON: toJSON
+  }
+});
+
+module.exports = User;

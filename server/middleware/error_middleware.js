@@ -1,13 +1,25 @@
 'use strict';
 
 exports.unauthorized = function (err, req, res, next) {
+  if (err.status !== 401) {
+    return next(err);
+  }
+
+  res.status(401).send({
+    success: false,
+    message: err.message || 'Unauthorized.',
+    error: err
+  });
+};
+
+exports.forbidden = function (err, req, res, next) {
   if (err.status !== 403) {
     return next(err);
   }
 
   res.status(403).send({
     success: false,
-    message: err.message || 'Unauthorized.',
+    message: err.message || 'Forbidden.',
     error: err
   });
 };

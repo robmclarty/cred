@@ -23,7 +23,7 @@ module.exports = function (req, res, next) {
 
   if (!token) {
     let noTokenError = new Error('No token provided.');
-    noTokenError.status = 403;
+    noTokenError.status = 400;
 
     return next(noTokenError);
   }
@@ -31,7 +31,7 @@ module.exports = function (req, res, next) {
   jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
     if (invalidTokenError) {
       invalidTokenError.message = 'Failed to authenticate token.';
-      invalidTokenError.status = 403;
+      invalidTokenError.status = 401;
 
       return next(invalidTokenError);
     }

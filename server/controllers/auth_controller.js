@@ -1,10 +1,10 @@
 'use strict';
 
 let jwt = require('jsonwebtoken');
-let User = require('../models/user');
 
 // Takes a username + password and returns a token.
 exports.postAuthenticate = function (req, res, next) {
+  let User = req.app.models.user;
   let apiSecret = req.app.get('api-secret');
   let username = req.body.username;
   let password = req.body.password;
@@ -16,7 +16,7 @@ exports.postAuthenticate = function (req, res, next) {
 
     // No user found with that username.
     if (!user) {
-      let noUserError = new Error('Authentication failed. User not found.');
+      let noUserError = new Error('Authentication failed. Username or password did not match.');
       noUserError.status = 400;
 
       return next(noUserError);
@@ -30,8 +30,8 @@ exports.postAuthenticate = function (req, res, next) {
 
       // Password did not match.
       if (!isMatch) {
-        let noMatchError = new Error('Authentication failed. Wrong password.');
-        noMatchError.status = 400;
+        let noMatchError = new Error('Authentication failed. Username or password did not match.');
+        noMatchError.status = 401;
 
         return next(noMatchError);
       }

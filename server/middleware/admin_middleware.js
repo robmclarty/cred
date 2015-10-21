@@ -17,7 +17,7 @@ module.exports = function requireAdmin(req, res, next) {
   // "roles" property to see if a particulr role (in this case "admin") exists.
   if (!req.session.isAdmin) {
     let notAdminError = new Error('You are not authorized to access this resource.');
-    notAdminError.status = 403;
+    notAdminError.status = 401;
 
     return next(notAdminError);
   }

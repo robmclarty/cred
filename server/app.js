@@ -2,26 +2,24 @@
 
 let express = require('express');
 let bodyParser = require('body-parser');
-let morgan = require('morgan');
-let mongoose = require('mongoose');
+let Waterline = require('waterline');
 let config = require('./config');
 
-// Config.
+// App.
 let app = express();
 let port = process.env.PORT || 3000;
 
-mongoose.connect(config.database);
-
 app.set('api-secret', config.secret);
+
+// Database
+let orm = new Waterline();
+
+orm.loadCollection(require('./models/user'));
+orm.loadCollection(require('./models/resource'));
 
 // Use body-parser to get info from POST and/or URL parameters.
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// Use morgan to log requests to the console.
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
 
 // Routes.
 let authRoutes = require('./routes/auth_routes');
@@ -46,12 +44,27 @@ app.use('/api', [
 // Error handlers.
 let errorHandler = require('./middleware/error_middleware');
 
-app.use(errorHandler.unauthorized);
-app.use(errorHandler.badRequest);
-app.use(errorHandler.genericError);
-app.use(errorHandler.pageNotFound);
+app.use([
+  errorHandler.unauthorized,
+  errorHandler.forbidden,
+  errorHandler.badRequest,
+  errorHandler.genericError,
+  errorHandler.pageNotFound
+]);
 
-// Start the server.
-app.listen(port);
+// Initialize orm with database config and start server.
+// Add orm models and connections to `app` object for convenience when
+// performing queries from controllers.
+orm.initialize(config.database, function (err, models) {
+  if (err) {
+    throw err;
+  }
 
-console.log('Server started at port ' + port);
+  app.models = models.collections;
+  app.connections = models.connections;
+
+  // Start the server.
+  app.listen(port);
+
+  console.log('Server started at port ' + port);
+});

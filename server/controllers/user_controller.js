@@ -1,27 +1,25 @@
 'use strict';
 
-let User = require('../models/user');
-
 exports.postUsers = function (req, res, next) {
-  let user = new User({
-    username: req.body.username,
-    password: req.body.password,
-    isAdmin: req.body.isAdmin
-  });
+  let User = req.app.models.user;
+  let newUser = req.body;
 
-  user.save(function (err) {
+  User.create(newUser, function (err, user) {
     if (err) {
       return next(err);
     }
 
     res.json({
       success: true,
-      message: 'New user added.'
+      message: 'User created.',
+      user: user
     });
   });
 };
 
 exports.getUsers = function (req, res, next) {
+  let User = req.app.models.user;
+
   User.find({}, function (err, users) {
     if (err) {
       return next(err);
@@ -29,6 +27,7 @@ exports.getUsers = function (req, res, next) {
 
     res.json({
       success: true,
+      message: 'Users found.',
       users: users
     });
   });

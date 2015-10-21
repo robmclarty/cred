@@ -1,15 +1,10 @@
 'use strict';
 
-let Resource = require('../models/resource');
-
 exports.postResources = function (req, res, next) {
-  let resource = new Resource({
-    name: req.body.name,
-    description: req.body.description || '',
-    notes: req.body.notes || ''
-  });
+  let Resource = req.app.models.resource;
+  let newResource = req.body;
 
-  resource.save(function (err) {
+  Resource.create(newResource, function (err, resource) {
     if (err) {
       return next(err);
     }
@@ -23,6 +18,8 @@ exports.postResources = function (req, res, next) {
 };
 
 exports.getResources = function (req, res, next) {
+  let Resource = req.app.models.resource;
+
   Resource.find({}, function (err, resources) {
     if (err) {
       return next(err);
@@ -37,7 +34,10 @@ exports.getResources = function (req, res, next) {
 };
 
 exports.getResource = function (req, res, next) {
-  Resource.findById(req.params.id, function (err, resource) {
+  let Resource = req.app.models.resource;
+  let resourceId = req.params.id;
+
+  Resource.findOne({ id: resourceId }, function (err, resource) {
     if (err) {
       return next(err);
     }
@@ -51,13 +51,11 @@ exports.getResource = function (req, res, next) {
 };
 
 exports.putResource = function (req, res, next) {
-  let update = {
-    name: req.body.name,
-    description: req.body.description,
-    notes: req.body.notes
-  };
+  let Resource = req.app.models.resource;
+  let updatedResource = req.body;
+  let resourceId = req.params.id;
 
-  Resource.findByIdAndUpdate(req.params.id, update, function (err, resource) {
+  Resource.update({ id: resourceId }, updatedResource, function (err, resource) {
     if (err) {
       return next(err);
     }
@@ -71,7 +69,10 @@ exports.putResource = function (req, res, next) {
 };
 
 exports.deleteResource = function (req, res, next) {
-  Resource.findByIdAndRemove(req.params.id, function (err, resource) {
+  let Resource = req.app.models.resource;
+  let resourceId = req.params.id;
+
+  Resource.destroy({ id: resourceId }, function (err, resource) {
     if (err) {
       return next(err);
     }
