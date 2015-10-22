@@ -22,17 +22,17 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 // Routes.
-let authRoutes = require('./routes/auth_routes');
+let authenticationRoutes = require('./routes/authentication_routes');
 let apiRoutes = require('./routes/api_routes');
 let userRoutes = require('./routes/user_routes');
 let resourceRoutes = require('./routes/resource_routes');
 let requireValidToken = require('./middleware/token_middleware');
 
 app.get('/', function (req, res) {
-  res.send('Hello! The API is at http://localhost:' + port + '/api');
+  res.send('Hello! The API is at "/api"');
 });
 
-app.use('/', authRoutes);
+app.use('/', authenticationRoutes);
 
 app.use('/api', [
   requireValidToken, // All API routes require a valid token.

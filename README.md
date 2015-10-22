@@ -42,7 +42,7 @@ user already exsists in the database with those credentials.
 POST `/authenticate`
 
 ```shell
-curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password"}' http://localhost:3000/authenticate
+curl -X POST -H "Content-Type: application/json" -d '{"username":"admin", "password":"password"}' http://localhost:3000/token
 ```
 
 #### response

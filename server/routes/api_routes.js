@@ -7,7 +7,8 @@ let router = express.Router();
 router.route('/')
   .get(function (res, req) {
     res.json({
-      message: 'Welcome to the coolest API on earth!'
+      success: true,
+      message: 'Welcome to the API!'
     });
   });
 

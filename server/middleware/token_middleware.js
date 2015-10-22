@@ -1,6 +1,7 @@
 'use strict';
 
 let jwt = require('jsonwebtoken');
+let errorHandler = require('../middleware/error_middleware');
 
 // If a bearer token has been sent in the authorization header, use that,
 // otherwise, check if a token was sent in the request body, as a parameter, or
@@ -25,15 +26,18 @@ module.exports = function (req, res, next) {
     let noTokenError = new Error('No token provided.');
     noTokenError.status = 400;
 
-    return next(noTokenError);
+    return next(createError({
+      status: errorHandler.codes.badRequest,
+      message: 'No token provided.'
+    }));
   }
 
   jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
     if (invalidTokenError) {
-      invalidTokenError.message = 'Failed to authenticate token.';
-      invalidTokenError.status = 401;
-
-      return next(invalidTokenError);
+      return next(createError({
+        status: errorHandler.codes.unauthorized,
+        message: 'Failed to authenticate token.'
+      }));
     }
 
     req.session = decodedPayload;
