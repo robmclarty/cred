@@ -3,11 +3,11 @@
 let jwt = require('jsonwebtoken');
 
 // Takes a username + password and returns a token.
-exports.postAuthenticate = function (req, res, next) {
+exports.postSession = function (req, res, next) {
   let User = req.app.models.user;
   let apiSecret = req.app.get('api-secret');
-  let username = req.body.username;
-  let password = req.body.password;
+  let username = req.body.username || '';
+  let password = req.body.password || '';
 
   User.findOne({ username: username }, function (findError, user) {
     if (findError) {
@@ -62,4 +62,15 @@ exports.postAuthenticate = function (req, res, next) {
 // Takes a token and returns the decoded payload session.
 exports.getSession = function (req, res) {
   res.json(req.session);
+};
+
+// TODO: Implement a black list for tokens which have explicitly been
+// deactivated through a "logout" action.
+exports.deleteSession = function (req, res) {
+
+};
+
+// TODO: Implement a public facing "signup" process which creates a new user.
+exports.postRegistration = function (req, res) {
+
 };

@@ -66,5 +66,5 @@ orm.initialize(config.database, function (err, models) {
   // Start the server.
   app.listen(port);
 
-  console.log('Server started at port ' + port);
+  console.log(`Server started at port ${port}`);
 });
