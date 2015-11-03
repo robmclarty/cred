@@ -1,25 +1,24 @@
 'use strict';
 
-let errorHandler = require('../middleware/error_middleware');
+let { createError, errorCodes } = require('../helpers/error_helper');
 
-// Look up session associated with JWT and verify that it has admin priviledges.
-// req.session is created in the token_middleware which parses a JWT sent with
+// Look up req.auth associated with JWT and verify that it has admin priviledges.
+// req.auth is created in the token_middleware which parses a JWT sent with
 // the current request.
 exports.requireAdmin = function (req, res, next) {
-  // Verify that a "session" exists on the request.
-  if (!req.session) {
+  if (!req.auth) {
     return next(createError({
-      status: errorHandler.codes.forbidden,
-      message: 'No session exists.'
+      status: errorCodes.forbidden,
+      message: 'No token payload.'
     }));
   }
 
-  // Check if the session is for an admin; if not, they're unauthorized.
+  // Check if req.auth is for an admin; if not, they're unauthorized.
   // TODO: This could be extended to create other middlewares that check on a possible
-  // "roles" property to see if a particulr role (in this case "admin") exists.
-  if (!req.session.isAdmin) {
+  // "roles" property to see if a particular role (in this case "admin") exists.
+  if (!req.auth.isAdmin) {
     return next(createError({
-      status: errorHandler.codes.unauthorized,
+      status: errorCodes.unauthorized,
       message: 'You are not authorized to access this resource.'
     }));
   }

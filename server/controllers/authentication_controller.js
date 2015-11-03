@@ -1,9 +1,7 @@
 'use strict';
 
-const tokenExpiresInMinutes = 1440; // expires in 24 hours
-
-let jwt = require('jsonwebtoken');
-let errorHandler = require('../middleware/error_middleware');
+let { createError, errorCodes } = require('../helpers/error_helper');
+let { createToken, revokeToken } = require('../helpers/token_helper');
 
 // Create a new user that is guaranteed to not be an admin. This is to be used
 // for public-facing signup/registration with the app.
@@ -30,7 +28,6 @@ exports.postRegistration = function (req, res, next) {
 // Takes a username + password and returns a token.
 exports.postToken = function (req, res, next) {
   let User = req.app.models.user;
-  let apiSecret = req.app.get('api-secret');
   let username = req.body.username || '';
   let password = req.body.password || '';
 
@@ -42,7 +39,7 @@ exports.postToken = function (req, res, next) {
     // No user found with that username.
     if (!user) {
       return next(createError({
-        status: errorHandler.codes.badRequest,
+        status: errorCodes.badRequest,
         message: 'Authentication failed. Username or password did not match.'
       }));
     }
@@ -56,14 +53,17 @@ exports.postToken = function (req, res, next) {
       // Password did not match.
       if (!isMatch) {
         return next(createError({
-          status: errorHandler.codes.unauthorized,
+          status: errorCodes.unauthorized,
           message: 'Authentication failed. Username or password did not match.'
         }));
       }
 
-      // Make a new token and send it back.
-      let token = jwt.sign(user.tokenPayload(), apiSecret, {
-        expiresInMinutes: tokenExpiresInMinutes
+      // Create a new token from the user-generated payload and app settings.
+      let token = createToken({
+        payload: user.tokenPayload(),
+        secret: req.app.get('token-secret'),
+        issuer: req.app.get('token-issuer'),
+        expiresInSeconds: req.app.get('token-expires-in-seconds')
       });
 
       res.json({
@@ -75,8 +75,17 @@ exports.postToken = function (req, res, next) {
   });
 };
 
-// TODO: Implement a black list for tokens which have explicitly been
-// deactivated through a "logout" action.
+// Logging out is simply done by adding the current, valid, token to a blacklist
+// which will invalidate the token until its expiration date has been reached.
 exports.deleteToken = function (req, res, next) {
+  revokeToken({
+    id: req.auth.jti,
+    exp: req.auth.exp
+  });
 
+  // The token is now no longer valid. Respond that the user is now "logged out".
+  res.json({
+    success: true,
+    message: 'You are now logged out.'
+  });
 };

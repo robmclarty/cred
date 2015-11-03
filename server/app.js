@@ -9,7 +9,10 @@ let config = require('./config');
 let app = express();
 let port = process.env.PORT || 3000;
 
-app.set('api-secret', config.secret);
+// Store token config values in app object.
+app.set('token-secret', config.token.secret);
+app.set('token-issuer', config.token.issuer);
+app.set('token-expires-in-seconds', config.token.expiresInSeconds);
 
 // Database
 let orm = new Waterline();
@@ -26,7 +29,7 @@ let authenticationRoutes = require('./routes/authentication_routes');
 let apiRoutes = require('./routes/api_routes');
 let userRoutes = require('./routes/user_routes');
 let resourceRoutes = require('./routes/resource_routes');
-let requireValidToken = require('./middleware/token_middleware');
+let { requireValidToken } = require('./middleware/token_middleware');
 
 app.get('/', function (req, res) {
   res.send('Hello! The API is at "/api"');

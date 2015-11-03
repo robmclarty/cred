@@ -31,7 +31,7 @@ function verifyPassword(password, next) {
 }
 
 // Create the payload for the JWT token. This will become available as
-// req.session for use throughout the app during a request. This is separate
+// req.auth for use throughout the app during a request. This is separate
 // from the higher-level toJSON() method so that it can be made different if
 // need be, not necessarily the whole user object.
 function tokenPayload() {
@@ -76,6 +76,7 @@ let User = Waterline.Collection.extend({
     },
 
     verifyPassword: verifyPassword,
+    tokenPayload: tokenPayload,
     toJSON: toJSON
   }
 });

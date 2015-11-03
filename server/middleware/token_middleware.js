@@ -1,46 +1,35 @@
 'use strict';
 
-let jwt = require('jsonwebtoken');
-let errorHandler = require('../middleware/error_middleware');
+let { validateToken, getTokenFromRequest } = require('../helpers/token_helper');
+let { createError, errorCodes } = require('../helpers/error_helper');
 
-// If a bearer token has been sent in the authorization header, use that,
-// otherwise, check if a token was sent in the request body, as a parameter, or
-// part of the query string, or in the 'x-access-token' header.
-// The authorization header is two string separated by a space, the first chunk
-// being "Bearer" the second being the token, like `Authorization: Bearer <token>`.
-function getTokenFromRequest(req) {
-  if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
-    return req.headers.authorization.split(' ')[1];
-  } else {
-    return req.headers['x-access-token'] || req.body.token || req.query.token;
-  }
-}
-
-// Checks for the presence of a JWT token called 'token' and verifies that it
-// is valid by comparing it against the secret.
-module.exports = function (req, res, next) {
-  let apiSecret = req.app.get('api-secret');
+// Check for the presence of a JSON Web Token called 'token' and verify that it
+// is valid by comparing it against a secret key.
+exports.requireValidToken = function (req, res, next) {
   let token = getTokenFromRequest(req);
 
+  // Token does not exist.
   if (!token) {
-    let noTokenError = new Error('No token provided.');
-    noTokenError.status = 400;
-
     return next(createError({
-      status: errorHandler.codes.badRequest,
+      status: errorCodes.badRequest,
       message: 'No token provided.'
     }));
   }
 
-  jwt.verify(token, apiSecret, function (invalidTokenError, decodedPayload) {
-    if (invalidTokenError) {
+  // TODO: Maybe change this to be a promise instead of using a callback.
+  validateToken({
+    secret: req.app.get('token-secret'),
+    issuer: req.app.get('token-issuer'),
+    token: token
+  }, function done(err, payload) {
+    if (err) {
       return next(createError({
-        status: errorHandler.codes.unauthorized,
+        status: errorCodes.unauthorized,
         message: 'Failed to authenticate token.'
       }));
     }
 
-    req.session = decodedPayload;
+    req.auth = payload;
 
     return next();
   });

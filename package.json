@@ -9,7 +9,9 @@
     "bcrypt-nodejs": "0.0.3",
     "body-parser": "^1.13.3",
     "express": "^4.13.3",
-    "jsonwebtoken": "^5.0.5",
+    "jsonwebtoken": "^5.4.1",
+    "lru-cache": "^2.7.0",
+    "node-uuid": "^1.4.3",
     "object-assign": "^4.0.1",
     "sails-disk": "^0.10.8",
     "sails-mongo": "^0.11.4",
@@ -17,17 +19,14 @@
     "waterline": "^0.10.26"
   },
   "devDependencies": {
-    "babel": "^5.8.23",
-    "babel-core": "^5.8.24",
-    "babel-eslint": "^4.1.1",
     "gulp": "^3.9.0",
     "gulp-eslint": "^1.0.0",
     "gulp-param": "^0.6.3"
   },
   "engines": {
-    "node": ">= 4.0.0"
+    "node": ">= 5.0.0"
   },
   "scripts": {
-    "start": "node server/app"
+    "start": "node --harmony_destructuring server/app"
   }
 }

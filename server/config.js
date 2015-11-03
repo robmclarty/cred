@@ -5,7 +5,11 @@ let mysqlAdapter = require('sails-mysql');
 let mongoAdapter = require('sails-mongo');
 
 module.exports = Object.freeze({
-  secret: process.env.SECRET || 'my_super_secret_secret',
+  token: {
+    secret: process.env.SECRET || 'my_super_secret_secret',
+    issuer: process.env.ISSUER || 'jwt-issuer',
+    expiresInSeconds: process.env.EXPIRES_IN_SECONDS || 24 * 60 * 60 // expires in 24 hours by default
+  },
   database: {
     adapters: {
       'default': diskAdapter,
