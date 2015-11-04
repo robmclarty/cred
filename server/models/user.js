@@ -39,7 +39,7 @@ function tokenPayload() {
     id: this.id,
     username: this.username,
     isAdmin: this.isAdmin
-  }
+  };
 }
 
 // Explicitly return a user object with public properties (i.e., no password).

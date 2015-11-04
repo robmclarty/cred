@@ -30,7 +30,7 @@ exports.getTokenFromRequest = function (req) {
   } else {
     return req.headers['x-access-token'] || req.body.token || req.query.token;
   }
-}
+};
 
 // Blacklist (or revoke) a valid token until its expiration date has been
 // reached. Once the token's expiration date has passed, it will be

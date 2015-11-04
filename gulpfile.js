@@ -1,13 +1,13 @@
 'use strict';
 
-var gulp = require('gulp-param')(require('gulp'), process.argv);
-var config = require('./server/config');
+let gulp = require('gulp-param')(require('gulp'), process.argv);
+let config = require('./server/config');
 
 // List existing users in the database by username.
 gulp.task('listUsers', function() {
-  var Waterline = require('waterline');
-  var orm = new Waterline();
-  var User = require('./server/models/user');
+  let Waterline = require('waterline');
+  let orm = new Waterline();
+  let User = require('./server/models/user');
 
   orm.loadCollection(User);
 
@@ -27,9 +27,9 @@ gulp.task('listUsers', function() {
 
 // Seed the database with some initial data (e.g., default admin user).
 gulp.task('createUser', function (username, password, admin) {
-  var Waterline = require('waterline');
-  var orm = new Waterline();
-  var User = require('./server/models/user');
+  let Waterline = require('waterline');
+  let orm = new Waterline();
+  let User = require('./server/models/user');
 
   orm.loadCollection(User);
 
@@ -38,7 +38,7 @@ gulp.task('createUser', function (username, password, admin) {
       throw err;
     }
 
-    var newUser = {
+    let newUser = {
       username: username,
       password: password,
       isAdmin: admin || false
@@ -56,7 +56,7 @@ gulp.task('createUser', function (username, password, admin) {
 });
 
 gulp.task('lint', function () {
-  var eslint = require('gulp-eslint');
+  let eslint = require('gulp-eslint');
 
   return gulp
     .src(['./server/**/*'])

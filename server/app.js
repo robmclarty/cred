@@ -26,16 +26,16 @@ app.use(bodyParser.json());
 
 // Routes.
 let authenticationRoutes = require('./routes/authentication_routes');
+let publicRoutes = require('./routes/public_routes');
 let apiRoutes = require('./routes/api_routes');
 let userRoutes = require('./routes/user_routes');
 let resourceRoutes = require('./routes/resource_routes');
 let { requireValidToken } = require('./middleware/token_middleware');
 
-app.get('/', function (req, res) {
-  res.send('Hello! The API is at "/api"');
-});
-
-app.use('/', authenticationRoutes);
+app.use('/', [
+  authenticationRoutes,
+  publicRoutes
+]);
 
 app.use('/api', [
   requireValidToken, // All API routes require a valid token.
