@@ -69,6 +69,13 @@ exports.createToken = function ({
   return token;
 };
 
+// Check if verify generates an error (e.g., if the token has expired, or
+// doesn't match the issuer, or is otherwise invalid). Check if it has a `jti`
+// claim (this implementation requires a unique identifier for each token so
+// that they can optionally be revoked). Check if the token has already been
+// revoked. If any of the above are true, then return the `done` callback with
+// the error and a null payload, otherwise, return a null error and the
+// decoded payload.
 exports.validateToken = function ({
   secret = '',
   issuer = '',

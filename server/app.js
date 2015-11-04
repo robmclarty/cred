@@ -37,8 +37,9 @@ app.use('/', [
   publicRoutes
 ]);
 
+// All API routes require a valid token.
 app.use('/api', [
-  requireValidToken, // All API routes require a valid token.
+  requireValidToken,
   apiRoutes,
   userRoutes,
   resourceRoutes

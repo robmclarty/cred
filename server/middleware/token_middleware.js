@@ -22,7 +22,7 @@ exports.requireValidToken = function (req, res, next) {
     issuer: req.app.get('token-issuer'),
     token: token
   }, function done(err, payload) {
-    if (err) {
+    if (err || !payload) {
       return next(createError({
         status: errorCodes.unauthorized,
         message: 'Failed to authenticate token.'

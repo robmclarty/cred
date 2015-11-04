@@ -2,12 +2,13 @@
 
 let express = require('express');
 let router = express.Router();
+let { requireValidToken } = require('../middleware/token_middleware');
 let authController = require('../controllers/authentication_controller');
 
 // Use "token" resource to handle authentication. POST = login, DELETE = logout.
 router.route('/token')
   .post(authController.postToken)
-  .delete(authController.deleteToken);
+  .delete(requireValidToken, authController.deleteToken);
 
 // Use "registration" resource to handle signups. This is separate from creating
 // a "user" resource from the user_controller in that it is public-facing and

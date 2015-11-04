@@ -26,8 +26,8 @@ sessions if you want to read more ;)
 ### Code Over Configuration
 
 Personally, I don't like too much magic in my apps, and prefer code over
-configuration. I'd rather **see** what's going on than having to blast through
-mountains of docs (or the opposite: **lacking** needed docs), trying to find
+configuration. I'd rather *see* what's going on than having to blast through
+mountains of docs (or the opposite: *lacking* needed docs), trying to find
 out how to invoke some magical black-box function to do what I want. I've used
 some standard libraries (like [express](http://expressjs.com/), and
 [node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)), but otherwise
@@ -46,14 +46,13 @@ able to dig in and change stuff when I don't like how it's working ;)
 
 ### Database ORM
 
-One final note regarding the data store: I started out using
-[mongoose](http://mongoosejs.com/), but later decided to switch to
-[waterline](https://github.com/balderdashy/waterline) in order to support more
-database options, making this a bit more flexible for anyone that wants to use
-it. I think mongoose is really great and I usually choose it for my personal
-projects, but I understand that NoSQL isn't for everyone, and that a small ORM
-abstraction can help fit this kind of API into more people's use-cases. I
-chose waterline over other libraries (such as
+I started out using [mongoose](http://mongoosejs.com/), but later decided to
+switch to [waterline](https://github.com/balderdashy/waterline) in order to
+support more database options, making this a bit more flexible for anyone that
+wants to use it. I think mongoose is really great and I usually choose it for
+my personal projects, but I understand that NoSQL isn't for everyone, and that
+a small ORM abstraction can help fit this kind of API into more people's
+use-cases. I chose waterline over other libraries (such as
 [sequalize](http://sequelizejs.com), [bookshelf](http://bookshelfjs.org/), and
 [orm2](https://github.com/dresende/node-orm2)) for its similarities (in syntax)
 to mongoose, which I think expresses data connections more simply than these
