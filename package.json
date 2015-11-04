@@ -1,6 +1,6 @@
 {
   "name": "jwt-api-server",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reference JWT authenticated API server.",
   "main": "server/app.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
