@@ -2,6 +2,10 @@
 
 A base-line JWT-authenticated API server.
 
+This is meant to be a starting point/reference for how one might go about
+architecting an API server using JWTs as the mechanism/transport for
+authenticated requests.
+
 A placeholder "resource" model is included to demonstrate how you might want
 to include some data for your API to serve, and a "user" model is setup
 to handle the basics of account management. The idea is that you would take this
@@ -21,14 +25,11 @@ sessions if you want to read more ;)
 
 ### Code Over Configuration
 
-This is meant to be a starting point/reference for how one might go about
-architecting an API server using JWTs as the mechanism/trasport for
-authenticated requests. Personally, I don't like too much magic in my apps,
-and prefer code over configuration. I'd rather **see** what's going on than
-having to blast through mountains of docs (or the opposite: **lacking** needed
-docs), trying to find out how to invoke some magical black-box function to do
-what I want. I've used some standard libraries (like
-[express](http://expressjs.com/), and
+Personally, I don't like too much magic in my apps, and prefer code over
+configuration. I'd rather **see** what's going on than having to blast through
+mountains of docs (or the opposite: **lacking** needed docs), trying to find
+out how to invoke some magical black-box function to do what I want. I've used
+some standard libraries (like [express](http://expressjs.com/), and
 [node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)), but otherwise
 have tried to put all the business logic into organized modules where you can
 change, manipulate, and mould the code directly, to suit your own needs.
