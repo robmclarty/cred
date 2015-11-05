@@ -85,7 +85,7 @@ exports.validateToken = function ({
     let tokenId = decodedPayload.jti;
 
     if (err || !tokenId || tokenIsRevoked(tokenId)) {
-      return done(err, null);
+      return done(err);
     }
 
     return done(null, decodedPayload);
