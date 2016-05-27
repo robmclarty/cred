@@ -1,3 +1,11 @@
+# Install
+
+`brew install gcc`
+`sudo npm install -g node-gyp`
+`CXX=g++-5 npm install argon2`
+`npm install`
+
+
 # Simple JWT API
 
 A base-line JWT-authenticated API server.

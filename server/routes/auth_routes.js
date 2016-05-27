@@ -1,14 +1,20 @@
 'use strict';
 
-let express = require('express');
-let router = express.Router();
-let { requireValidToken } = require('../middleware/token_middleware');
-let authController = require('../controllers/authentication_controller');
+const express = require('express');
+const router = express.Router();
+const { requireValidRefreshToken } = require('../middleware/token_middleware');
+const {
+  postTokens,
+  putTokens,
+  deleteToken,
+  postRegistration
+} = require('../controllers/authentication_controller');
 
 // Use "token" resource to handle authentication. POST = login, DELETE = logout.
-router.route('/token')
-  .post(authController.postToken)
-  .delete(requireValidToken, authController.deleteToken);
+router.route('/tokens')
+  .post(postTokens)
+  .put(requireValidRefreshToken, putTokens)
+  .delete(requireValidRefreshToken, deleteToken);
 
 // Use "registration" resource to handle signups. This is separate from creating
 // a "user" resource from the user_controller in that it is public-facing and
@@ -17,6 +23,6 @@ router.route('/token')
 // Creating a user from the user_controller can then be reserved for different
 // purposes such as internal administration.
 router.route('/registration')
-  .post(authController.postRegistration);
+  .post(postRegistration);
 
 module.exports = router;

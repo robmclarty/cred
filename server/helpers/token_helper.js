@@ -1,22 +1,19 @@
 'use strict';
 
-let LRU = require('lru-cache');
-let blacklist = LRU();
-let jwt = require('jsonwebtoken');
-let uuid = require('node-uuid');
+//let LRU = require('lru-cache');
+//let blacklist = LRU();
+const jwt = require('jsonwebtoken'); // based on npm 'jws'
+const jws = require('jws');
+const shortid = require('shortid');
 
 // Given a tokenId (jti claim), check if it exists in the jtiCache (the blacklist)
 // and return true if it does. LRU will return 'undefined' if it cannot find
 // the id in the cache.
-function tokenIsRevoked(tokenId) {
-  let blacklisted = blacklist.get(tokenId);
+const tokenIsRevoked = tokenId => {
+  const blacklisted = blacklist.get(tokenId);
 
   // If token's ID is on the blacklist, the token is revoked.
-  if (typeof blacklisted !== 'undefined') {
-    return true;
-  }
-
-  return false;
+  return typeof blacklisted !== 'undefined';
 }
 
 // If a bearer token has been sent in the authorization header, use that,
@@ -24,12 +21,15 @@ function tokenIsRevoked(tokenId) {
 // part of the query string, or in the 'x-access-token' header.
 // The authorization header is two string separated by a space, the first chunk
 // being "Bearer" the second being the token, like `Authorization: Bearer <token>`.
-exports.getTokenFromRequest = function (req) {
-  if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+const getTokenFromRequest = req => {
+  if (req.headers.authorization &&
+      req.headers.authorization.split(' ')[0] === 'Bearer') {
     return req.headers.authorization.split(' ')[1];
-  } else {
-    return req.headers['x-access-token'] || req.body.token || req.query.token;
   }
+
+  return req.headers['x-access-token'] ||
+    req.body.token ||
+    req.query.token;
 };
 
 // Blacklist (or revoke) a valid token until its expiration date has been
@@ -38,35 +38,44 @@ exports.getTokenFromRequest = function (req) {
 // valid (but revoked) are stored in the cache. LRU handles removing expired
 // tokens for us since we simply give each new entry a maxAge that is the time
 // from now until the token's expiration date.
-exports.revokeToken = function ({ id = '', exp = 0 }) {
-  // Calculate the maxAge for the blacklisted token based on its expiration date.
-  let nowInSeconds = Math.floor(Date.now() / 1000);
-  let maxAge = exp - nowInSeconds;
+const revokeToken = ({ id = '', exp = 0, redis: {} }) => {
+  return new Promise((resolve, reject) => {
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const maxAge = exp - nowInSeconds;
 
-  // Add the token to the blacklist (i.e., add the jti to the cache).
-  blacklist.set(id, id, maxAge);
+    // Add the token to the blacklist (i.e., add the jti to the cache).
+    blacklist.set(id, id, maxAge);
+    resolve();
+  });
 };
 
 // Create a new token with the provided payload and return the generated token.
-exports.createToken = function ({
+// Merge user-defined payload with some specific token claims (e.g., jti).
+// See https://github.com/auth0/node-jsonwebtoken for errors generated
+// by jsonwebtoken npm package.
+const createToken = ({
   payload = {},
-  secret = '',
   issuer = '',
-  expiresInSeconds = 0
-}) {
-  // Merge user-payload with some some specific token claims.
-  let payloadWithId = Object.assign({
-    jti: uuid.v1() // generate time-based id -> '6c84fb90-12c4-11e1-840d-7b25c5ee775a'
-  }, payload);
+  secret = '',
+  algorithm = 'HS256',
+  expiresIn = 0,
+}) => {
+  return new Promise((resolve, reject) => {
+    const extendedPayload = Object.assign({
+      jti: shortid.generate()
+    }, payload);
+    const options = {
+      issuer, // corresponds to verify() check
+      algorithm,
+      expiresIn
+    };
 
-  // Make a new token and send it back.
-  let token = jwt.sign(payloadWithId, secret, {
-    algorithm: 'HS256',
-    issuer: issuer, // corresponding verify() checks that issuer matches
-    expiresIn: expiresInSeconds
+    jwt.sign(extendedPayload, secret, options, (err, token) => {
+      if (err || !token) reject(`Failed to create token: ${ err }`);
+
+      resolve(token);
+    });
   });
-
-  return token;
 };
 
 // Check if verify generates an error (e.g., if the token has expired, or
@@ -76,18 +85,31 @@ exports.createToken = function ({
 // revoked. If any of the above are true, then return the `done` callback with
 // the error and a null payload, otherwise, return a null error and the
 // decoded payload.
-exports.validateToken = function ({
-  secret = '',
+// See https://github.com/auth0/node-jsonwebtoken for errors generated
+// by jsonwebtoken npm package.
+const verifyToken = ({
+  token = '',
   issuer = '',
-  token = ''
-}, done) {
-  jwt.verify(token, secret, { issuer: issuer }, function (err, decodedPayload) {
-    let tokenId = decodedPayload.jti;
+  secret = '',
+  algorithm = 'HS256'
+}) => {
+  return new Promise((resolve, reject) => {
+    const options = {
+      issuer,
+      algorithms: [algorithm]
+    };
 
-    if (err || !tokenId || tokenIsRevoked(tokenId)) {
-      return done(err);
-    }
+    jwt.verify(token, secret, options, (err, payload) => {
+      if (err || !payload) reject(`Failed to authenticate token: ${ err }`);
 
-    return done(null, decodedPayload);
+      resolve(payload);
+    });
   });
 };
+
+Object.assign(exports, {
+  createToken,
+  verifyToken,
+  revokeToken,
+  getTokenFromRequest
+});

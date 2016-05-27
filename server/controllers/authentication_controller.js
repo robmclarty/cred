@@ -1,91 +1,176 @@
 'use strict';
 
-let { createError, errorCodes } = require('../helpers/error_helper');
-let { createToken, revokeToken } = require('../helpers/token_helper');
+const User = require('../models/user');
+const {
+  createError,
+  BAD_REQUEST,
+  UNAUTHORIZED,
+  UNPROCESSABLE
+} = require('../helpers/error_helper');
+const { createToken, revokeToken } = require('../helpers/token_helper');
 
-// Create a new user that is guaranteed to not be an admin. This is to be used
-// for public-facing signup/registration with the app.
-exports.postRegistration = function (req, res, next) {
-  let User = req.app.models.user;
-  let newUser = req.body;
+const updateUserLoginAt = (user, timestamp) => {
+  user.loginAt = timestamp;
 
-  // Admin users cannot be created through this endpoint.
-  newUser.isAdmin = false;
-
-  User.create(newUser, function (err, user) {
-    if (err) {
-      return next(err);
-    }
-
-    res.json({
-      success: true,
-      message: 'Registration successful.',
-      user: user
-    });
-  });
+  return user.save();
 };
 
-// Takes a username + password and returns a token.
-exports.postToken = function (req, res, next) {
-  let User = req.app.models.user;
-  let username = req.body.username || '';
-  let password = req.body.password || '';
-
-  User.findOne({ username: username }, function (findError, user) {
-    if (findError) {
-      return next(findError);
-    }
-
-    // No user found with that username.
+// Make sure the password is correct. If it isn't return unauthorized. If it
+// is, update the login date for the user and return the necessary token
+// settings/options needed for creating valid tokens.
+const verifyUserPassword = (app, user, password) => {
+  return new Promise((resolve, reject) => {
     if (!user) {
-      return next(createError({
-        status: errorCodes.badRequest,
+      reject(createError({
+        status: BAD_REQUEST,
         message: 'Authentication failed. Username or password did not match.'
       }));
     }
 
-    // Make sure the password is correct.
-    user.verifyPassword(password, function (passwordError, isMatch) {
-      if (passwordError) {
-        return next(passwordError);
-      }
+    user
+      .verifyPassword(password)
+      .then(match => {
+        if (!match) {
+          reject(createError({
+            status: UNAUTHORIZED,
+            message: 'Authentication failed. Username or password did not match.'
+          }));
+        }
+      })
+      .then(updateUserLoginAt(user, Date.now()))
+      .then(resolve({
+        accessTokenOptions: {
+          payload: user.tokenPayload(),
+          issuer: app.get('token-issuer'),
+          secret: app.get('token-access-private-key'),
+          algorithm: app.get('token-access-alg'),
+          expiresIn: app.get('token-access-expires-in')
+        },
+        refreshTokenOptions: {
+          payload: user.tokenPayload(),
+          issuer: app.get('token-issuer'),
+          secret: app.get('token-refresh-secret'),
+          algorithm: app.get('token-refresh-alg'),
+          expiresIn: app.get('token-refresh-expires-in')
+        }
+      }))
+      .catch(err => reject(err));
+  });
+}
 
-      // Password did not match.
-      if (!isMatch) {
-        return next(createError({
-          status: errorCodes.unauthorized,
-          message: 'Authentication failed. Username or password did not match.'
+// These are the options returned by the userVerifyPassword fundtion. Append
+// `accessToken` to the options and return them to pass on to
+// createRefreshToken().
+const createAccessToken = options => {
+  return createToken(options.accessTokenOptions)
+    .then(accessToken => Object.assign({}, options, { accessToken }));
+};
+
+// These are the same options as for createAccessToken(), only with the property
+// `accessToken` appended to it.
+const createRefreshToken = options => {
+  return createToken(options.refreshTokenOptions)
+    .then(refreshToken => ({
+      accessToken: options.accessToken,
+      refreshToken
+    }));
+};
+
+// Create a new user that is guaranteed to not be an admin. This is to be used
+// for public-facing signup/registration with the app.
+const postRegistration = (req, res, next) => {
+  const newUser = req.body;
+
+  // Admin users cannot be created through this endpoint.
+  newUser.isAdmin = false;
+
+  User
+    .create(newUser)
+    .then(user => {
+      res.json({
+        success: true,
+        message: 'Registration successful.',
+        user
+      });
+    })
+    .catch(err => next(err));
+};
+
+// Takes a username + password and returns a token.
+const postTokens = (req, res, next) => {
+  const { username, password } = req.body;
+
+  User
+    .findOne({ username })
+    .then(user => verifyUserPassword(req.app, user, password))
+    .then(options => createAccessToken(options))
+    .then(options => createRefreshToken(options))
+    .then(tokens => {
+      res.json({
+        success: true,
+        message: 'Tokens generated successfully.',
+        tokens
+      });
+    })
+    .catch(err => next(err));
+};
+
+// Takes a refresh-token (in the request header, validated in middleware), and
+// returns a fresh access-token.
+const putTokens = (req, res, next) => {
+  User
+    .findById(req.refreshAuth.userId)
+    .then(user => {
+      // No user found with that username.
+      if (!user) {
+        next(createError({
+          status: BAD_REQUEST,
+          message: 'Authentication failed. No user found that matches this token.'
         }));
       }
 
-      // Create a new token from the user-generated payload and app settings.
-      let token = createToken({
+      return accessTokenOptions = {
         payload: user.tokenPayload(),
-        secret: req.app.get('token-secret'),
+        keyPath: req.app.get('token-private-key-path'),
         issuer: req.app.get('token-issuer'),
-        expiresInSeconds: req.app.get('token-expires-in-seconds')
-      });
-
+        expiresIn: req.app.get('token-expires-in'),
+        algorithm: req.app.get('token-alg')
+      }
+    })
+    .then(accessTokenOptions => createToken(accessTokenOptions))
+    .then(accessToken => {
       res.json({
         success: true,
-        message: 'Enjoy your token!',
-        token: token
+        message: 'Token refreshed.',
+        accessToken
       });
-    });
-  });
+    })
+    .catch(err => next(err));
 };
 
 // Logging out is simply done by adding the current, valid, token to a blacklist
 // which will invalidate the token until its expiration date has been reached.
-exports.deleteToken = function (req, res, next) {
-  revokeToken({
+// The token is now no longer valid. Respond that the user is now "logged out".
+const deleteToken = (req, res, next) => {
+  const options = {
     id: req.auth.jti,
-    exp: req.auth.exp
-  });
+    exp: req.auth.exp,
+    redis: {}
+  };
 
-  // The token is now no longer valid. Respond that the user is now "logged out".
-  res.json({
-    success: true,
-    message: 'You are now logged out.'
-  });
+  revokeToken(options)
+    .then(() => {
+      res.json({
+        success: true,
+        message: 'Token revoked.'
+      });
+    })
+    .catch(err => next(err));
 };
+
+Object.assign(exports, {
+  postRegistration,
+  postTokens,
+  putTokens,
+  deleteToken
+});

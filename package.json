@@ -1,31 +1,32 @@
 {
-  "name": "jwt-api-server",
-  "version": "0.3.0",
-  "description": "Reference JWT authenticated API server.",
-  "main": "server/app.js",
+  "name": "authentik",
+  "version": "1.0.0",
+  "description": "A simple authentication & authorization service for use in a JWT micro-service ecosystem.",
+  "main": "server/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
   "dependencies": {
-    "bcrypt-nodejs": "0.0.3",
-    "body-parser": "^1.13.3",
-    "express": "^4.13.3",
-    "jsonwebtoken": "^5.4.1",
-    "lru-cache": "^2.7.0",
-    "node-uuid": "^1.4.3",
-    "sails-disk": "^0.10.8",
-    "sails-mongo": "^0.11.4",
-    "sails-mysql": "^0.11.0",
-    "waterline": "^0.10.26"
+    "argon2": "0.11.1",
+    "body-parser": "1.15.1",
+    "cors": "2.7.1",
+    "express": "4.13.4",
+    "jsonwebtoken": "7.0.0",
+    "kerberos": "0.0.21",
+    "mongoose": "4.4.19",
+    "morgan": "1.7.0",
+    "shortid": "2.2.6",
+    "striptags": "2.1.1",
+    "urlsafe-base64": "1.0.0"
   },
   "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-eslint": "^1.0.0",
-    "gulp-param": "^0.6.3"
+    "gulp": "github:gulpjs/gulp#4.0",
+    "require-dir": "0.3.0",
+    "yargs": "4.7.1"
   },
   "engines": {
-    "node": ">= 5.0.0"
+    "node": ">= 6.0.0"
   },
   "scripts": {
-    "start": "node --harmony_destructuring server/app"
+    "start": "server/start.js"
   }
 }

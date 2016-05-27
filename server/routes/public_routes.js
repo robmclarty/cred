@@ -1,14 +1,23 @@
 'use strict';
 
-let express = require('express');
-let router = express.Router();
+const express = require('express');
+const router = express.Router();
 
-// Root route (aka homepage).
+// Homepage (replace with an html website if desired).
 router.route('/')
   .get(function (req, res) {
-    res.send('Hello! The API is at "/api"');
+    res.json({
+      success: true,
+      message: 'Welcome to the Authentik API!'
+    });
+  });
+
+// Admin (this should never be hit in production as nginx should catch it first).
+router.route('/admin/*')
+  .get(function (req, res) {
+    const assetsPath = req.app.get('assets-path');
+
+    res.sendFile('admin/index.html', { root: assetsPath });
   });
 
 module.exports = router;
-
-

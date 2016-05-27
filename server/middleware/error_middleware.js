@@ -1,46 +1,57 @@
 'use strict';
 
-let { errorCodes } = require('../helpers/error_helper');
+let {
+  BAD_REQUEST,
+  UNAUTHORIZED,
+  FORBIDDEN,
+  PAGE_NOT_FOUND,
+  UNPROCESSABLE,
+  GENERIC_ERROR
+} = require('../helpers/error_helper');
 
-exports.unauthorized = function (err, req, res, next) {
-  if (err.status !== errorCodes.unauthorized) {
-    return next(err);
-  }
+const unauthorized = (err, req, res, next) => {
+  if (err.status !== UNAUTHORIZED) return next(err);
 
-  res.status(errorCodes.unauthorized).send({
+  res.status(UNAUTHORIZED).send({
     success: false,
     message: err.message || 'Unauthorized.',
     error: err
   });
 };
 
-exports.forbidden = function (err, req, res, next) {
-  if (err.status !== errorCodes.forbidden) {
-    return next(err);
-  }
+const forbidden = (err, req, res, next) => {
+  if (err.status !== FORBIDDEN) return next(err);
 
-  res.status(errorCodes.forbidden).send({
+  res.status(FORBIDDEN).send({
     success: false,
     message: err.message || 'Forbidden.',
     error: err
   });
 };
 
-exports.badRequest = function (err, req, res, next) {
-  if (err.status !== errorCodes.badRequest) {
-    return next(err);
-  }
+const badRequest = (err, req, res, next) => {
+  if (err.status !== BAD_REQUEST) return next(err);
 
-  res.status(errorCodes.badRequest).send({
+  res.status(BAD_REQUEST).send({
     success: false,
     message: err.message || 'Bad Request',
     error: err
   });
 };
 
+const unprocessable = (err, req, res, next) => {
+  if (err.status !== UNPROCESSABLE) return next(err);
+
+  res.status(UNPROCESSABLE).send({
+    success: false,
+    message: err.message || 'Unprocessable entity.',
+    error: err
+  });
+}
+
 // If there's still an error at this point, return a generic 500 error.
-exports.genericError = function (err, req, res, next) {
-  res.status(errorCodes.genericError).send({
+const genericError = (err, req, res, next) => {
+  res.status(GENERIC_ERROR).send({
     success: false,
     message: err.message || 'Internal server error.',
     error: err
@@ -49,9 +60,18 @@ exports.genericError = function (err, req, res, next) {
 
 // If there's nothing left to do after all this (and there's no error),
 // return a 404 error.
-exports.pageNotFound = function (req, res, next) {
-  res.status(errorCodes.pageNotFound).send({
+const pageNotFound = (req, res, next) => {
+  res.status(PAGE_NOT_FOUND).send({
     success: false,
     message: 'Page not found.'
   });
 };
+
+Object.assign(exports, {
+  unauthorized,
+  forbidden,
+  badRequest,
+  unprocessable,
+  genericError,
+  pageNotFound
+});

@@ -1,4 +1,7 @@
-# JSON Web Tokens
+# What is JWT
+
+by Rob McLarty
+last updated Sep 2015
 
 JSON Web Token (JWT), pronounced "jot", is a compact URL-safe means of
 representing claims to be transferred between two parties. The claims in a JWT
@@ -6,7 +9,7 @@ are encoded as a JSON object that is digitally signed using JSON Web Signature
 (JWS).
 
 Why is it called "jot"? ...because that's what the people who made the standard
-suggested we call it. *shrug*
+suggested we call it.
 
 
 ## How we used to do authentication
@@ -21,7 +24,6 @@ is implemented with two parts: 1) an object stored on the server that remembers
 if a user is still logged in, a reference to their profile, etc. and 2) a cookie
 on the client-side that stores some kind of ID that can be referenced on the
 server against the session object's ID.
-
 
 ### Cookie-based Auth
 
@@ -60,32 +62,25 @@ require different setups (e.g., multiple mobile native apps alongside large
 single-page web apps contacting multiple backend services, that may be nothing
 more than json data without a webpage at all).
 
-
 ### Drawbacks With Cookie-based Auth
 
 - **sessions**: need to be stored somewhere, either in memory, in a database, or
   keyvalue store like redis; and they need to be managed so that they are
   removed when they expire or are otherwise invalidated
-
 - **poor scalability**: the session store needs to be scaled when scaling the
   server; the store uses up resources; adds complexity
-
 - **performance issues**: when the session needs to be stored on the server, a
   lot of database/store lookups need to happen on every request which can bog
   down the server
-
 - **native apps (or non-browser apps)**: browsers handle cookies, but custom
   apps don't (at least not easily), so a different kind of session mechanism is
   needed
-
 - **multiple backends**: what if your app needs to talk to a database backend as
   well as a separate image processing backend? more and more, our digital world
   is being split up into separate micro-services; when authenticating with more
   than one backend, things can get complicated fast
-
 - **CSRF**: if cookies are being used, extra security is needed to prevent
   cross-site scripting attacks
-
 - **CORS**: cookies + CORS don't play well across different domains (actually,
   real cross-domain doesn't work at all)
 
@@ -106,7 +101,6 @@ other people's rooms or go into the manager's office. And, like a hotel key,
 when your stay has expired, you're simply left with a useless piece of plastic
 (i.e., the token doesn't do anything anymore after it's expired).
 
-
 ### How JWT Works
 
 A JWT is self-contained. When we create one, it has all the necessary pieces we
@@ -122,8 +116,8 @@ can be interpreted), and the name of the algorithm used to make the signature
 (e.g., `{typ: 'JWT', alg: 'HS256'}`). This gets encoded into base64.
 
 The payload is a JSON object of data. You can put whatever you want in it (e.g.,
-`{userId: 2}` or maybe even `{userId: 2, admin: true}`. This also gets encoded
-into base64.
+{userId: 2} or maybe even {userId: 2, admin: true}. This also gets encoded into
+base64.
 
 The signature is a hash of the encoded header, the encoded payload, and a
 "secret" key that we provide (stored safely on the server) using the algorithm
@@ -150,7 +144,7 @@ with data, otherwise it sends back an error message.
 
 An real token example:
 
-```json
+```
 eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vZXhhbXBsZS5vcmciLCJhdWQ
 iOiJodHRwOi8vZXhhbXBsZS5jb20iLCJpYXQiOjEzNTY5OTk1MjQsIm5iZiI6MTM1NzAwMDAwMCwiZXh
 wIjoxNDA3MDE5NjI5LCJqdGkiOiJpZDEyMzQ1NiIsInR5cCI6Imh0dHBzOi8vZXhhbXBsZS5jb20vcmV
@@ -192,8 +186,7 @@ should only be on the server and never published).
 
 A JWT can also include other useful information in its payload, called "claims".
 Most important is an expiry date. If an expiry date is included, the token will
-automatically become invalid when that date has passed.
-
+automatically become invalid when that date has passed.  
 
 ### Standard JWT Claims
 
@@ -203,27 +196,18 @@ to prevent a number of different kinds of attacks. Be sure to check what's
 available in the library you choose.
 
 - **iss**: the issuer of the token
-
 - **sub**: the subject of the token
-
 - **aud**: the audience of the token
-
 - **exp**: this will probably be the registered claim most often used. This will
   define the expiration in NumericDate value. The expiration MUST be after the
   current date/time.
-
-- **nbf**: defines the time before which the JWT MUST NOT be accepted for
-  processing
-
-- **iat**: the time the JWT was issued. Can be used to determine the age of the
-  JWT
-
+- **nbf**: defines the time before which the JWT MUST NOT be accepted for processing
+- **iat**: the time the JWT was issued. Can be used to determine the age of the JWT
 - **jti**: unique identifier for the JWT. Can be used to prevent the JWT from
   being replayed. This is helpful for a one time use token.
 
 Example payload:
-
-```json
+```
 {
   "iss": "http://example.org",
   "aud": "http://example.com",
@@ -237,7 +221,6 @@ Example payload:
   "id": 78
 }
 ```
-
 
 ### How to Invalidate a JWT
 
@@ -279,73 +262,53 @@ an attacker only has less than a day to take advantage (which is likely not
 nearly enough time to brute-force the signature's encryption, even with a
 super-computer... the jury's still out on quantum computers).
 
+### Advantages to JWT
 
-### Advantages of JWTs
-
-- **no session to manage (stateless)**: the token has everything we need to
-  identify users, and the rest of your app's state can be stored in cookies or
-  local storage on the client side; no need for a session object stored on the
-  server
-
+- **no session to manage** (stateless): the token has everything we need to identify
+  users, and the rest of your app's state can be stored in cookies or local
+  storage on the client side; no need for a session object stored on the server
 - **portable/homogenous**: a single token can be used with multiple backends
-
 - **no cookies**: can store the token however we want: e.g., in localStorage,
   indexDB, or some native store
-
 - **mobile friendly**: developing native apps (iOS, Android, Windows 8, etc.) is
   difficult and cumbersome with cookies (e.g., you have to deal with cookie
   containers), but adopting a token-based approach simplifies this a lot
-
-- **built-in expiration**: JWT has standard claims that can be set in the
-  payload when a new token is creates; nothing more needs to be done
-
+- **built-in expiration**: JWT has standard claims that can be set in the payload
+  when a new token is creates; nothing more needs to be done
 - **don't need to logout**: just throw away the token, it will expire on its own
   (you usually want to give a short expiration time, but if you really want to,
   you can keep track of a "blacklist" of tokens that are marked as "invalid" on
   the server which could be added to from an explicit logout, or from an
   administrator marking certain tokens as invalid)
-
-- **works with CORS**: a token-based auth approach allows you to make AJAX calls
-  to any server, on any domain because you can use a HTTP header to transmit the
+- **works with CORS**: a token-based auth approach allows you to make AJAX calls to
+  any server, on any domain because you can use a HTTP header to transmit the
   user information
-
 - **leverage CDNs**: you can serve all the assets for your app from a CDN (e.g.,
   javascript, HTML, images, etc.) and your server side can just be an API
-
-- **easy to debug**: JWTs can be inspected and their data reviewed (whereas
-  sessions are stored on the server and are a lot harder to look at)
-
-- **decoupled/decentralized**: the token can be generated anywhere
-  (authentication can happen on the resource server, or easily separated into
-  its own server, or "self-issued", or otherwise be completely externalized)
-
-- **CSRF doesn't matter**: because if you don't have a token, you can't do
-  anything; since we don't need to rely on cookies, we don't need to protect
-  against cross site requests (e.g., it would not be possible to `<iframe>` our
-  site, generate a POST request, and re-use the existing authentication cookie
-  because there will be none)
-
+- **easy to debug**: JWTs can be inspected and their data reviewed (whereas sessions
+  are stored on the server and are a lot harder to look at)
+- **decoupled/decentralized**: the token can be generated anywhere (authentication
+  can happen on the resource server, or easily separated into its own server, or
+  "self-issued", or otherwise be completely externalized)
+- **CSRF doesn't matter**: because if you don't have a token, you can't do anything;
+  since we don't need to rely on cookies, we don't need to protect against cross
+  site requests (e.g., it would not be possible to <iframe> our site, generate a
+  POST request, and re-use the existing authentication cookie because there will
+  be none)
 - **good performance**: a network round-trip (e.g., finding a session in the
   database, deserializing it, then extracting the information we're interested
   in) is likely to take more time than calculating a HMACSHA256 to validate a
   token and parse its contents
-
-- **standard-based**: read the spec: [RFC 7519](https://tools.ietf.org/html/rfc7519)
+- **standard-based**: spec: https://tools.ietf.org/html/draft-ietf-oauth-json-web-token-27
   supported by multiple backend libraries (.NET, Ruby, Java, Python, PHP,
   Javascript), and companies backing their infrastructure (e.g., Firebase,
   Google, Microsoft, Zendesk).
 
 
-## References
+## Further Reading
 
-- [node-jsonwebtoken](https://github.com/auth0/node-jsonwebtoken)
-- [Why Cookies are Bad](http://www.kb.cert.org/vuls/id/804060)
-- [Make your Angular app a max security prison](https://www.youtube.com/watch?v=lDb_GANDR8U) (video)
-- [MNUG 2014 - Lightning talk: JWT: JSON Web Token](https://www.youtube.com/watch?v=eWUkxzyB1Rk) (video)
 - [Auth0](https://auth0.com/docs/jwt)
 - [JWT.io](http://jwt.io/)
-- [Json Web Tokens: Introduction](http://angular-tips.com/blog/2014/05/json-web-tokens-introduction/)
-- [Securing Requests with JWT](http://websec.io/2014/08/04/Securing-Requests-with-JWT.html)
 - [The useful little standard you haven't heard about](http://www.intridea.com/blog/2013/11/7/json-web-token-the-useful-little-standard-you-haven-t-heard-about)
 - [The anatomy of a JSON Web Token](https://scotch.io/tutorials/the-anatomy-of-a-json-web-token)
 - [Using JSON Web Tokens as API Keys](https://auth0.com/blog/2014/12/02/using-json-web-tokens-as-api-keys/)

@@ -1,24 +1,27 @@
 'use strict';
 
-const codes = {
-  badRequest: 400,
-  unauthorized: 401,
-  forbidden: 403,
-  pageNotFound: 404,
-  genericError: 500
-};
+const BAD_REQUEST = 400;
+const UNAUTHORIZED = 401;
+const FORBIDDEN = 403;
+const PAGE_NOT_FOUND = 404;
+const UNPROCESSABLE = 422;
+const GENERIC_ERROR = 500;
 
 // Simple helper method to create new errors with a specific status value
 // attached to them, to match up with the codes and methods below.
-exports.createError = function ({
-  status = codes.genericError,
-  message = 'Something went wrong.'
-}) {
-  let err = new Error(message);
-  err.status = status;
+const createError = ({
+  status = genericError,
+  msg = 'Something went wrong.'
+}) => Object.assign({}, new Error(msg), {
+  status
+});
 
-  return err;
-};
-
-// Constants to be used throughout the app instead of hard-coding status values.
-exports.errorCodes = codes;
+Object.assign(exports, {
+  createError,
+  BAD_REQUEST,
+  UNAUTHORIZED,
+  FORBIDDEN,
+  PAGE_NOT_FOUND,
+  UNPROCESSABLE,
+  GENERIC_ERROR
+});

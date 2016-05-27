@@ -1,36 +1,69 @@
 'use strict';
 
-let { validateToken, getTokenFromRequest } = require('../helpers/token_helper');
-let { createError, errorCodes } = require('../helpers/error_helper');
+const { verifyToken, getTokenFromRequest } = require('../helpers/token_helper');
+const {
+  createError,
+  BAD_REQUEST,
+  UNAUTHORIZED
+} = require('../helpers/error_helper');
+
+const ACCESS = 'access';
+const REFRESH = 'refresh';
 
 // Check for the presence of a JSON Web Token called 'token' and verify that it
 // is valid by comparing it against a secret key.
-exports.requireValidToken = function (req, res, next) {
-  let token = getTokenFromRequest(req);
+const requireValidToken = type => (req, res, next) => {
+  const token = getTokenFromRequest(req);
+  const options = {
+    token,
+    issuer: req.app.get('token-issuer'),
+    secret: '',
+    algorithm: 'HS256'
+  };
 
   // Token does not exist.
   if (!token) {
-    return next(createError({
-      status: errorCodes.badRequest,
+    next(createError({
+      status: BAD_REQUEST,
       message: 'No token provided.'
     }));
   }
 
-  // TODO: Maybe change this to be a promise instead of using a callback.
-  validateToken({
-    secret: req.app.get('token-secret'),
-    issuer: req.app.get('token-issuer'),
-    token: token
-  }, function done(err, payload) {
-    if (err || !payload) {
-      return next(createError({
-        status: errorCodes.unauthorized,
-        message: 'Failed to authenticate token.'
-      }));
-    }
+  switch(type) {
+  case ACCESS:
+    Object.assign(options, {
+      secret: req.app.get('token-access-public-key'),
+      algorithm: req.app.get('token-access-alg')
+    });
+    break;
+  case REFRESH:
+    Object.assign(options, {
+      secret: req.app.get('token-access-refresh-secret'),
+      algorithm: req.app.get('token-refresh-alg')
+    });
+    break;
+  default:
+    // do nothing
+  }
 
-    req.auth = payload;
-
-    return next();
-  });
+  // If valid token, create a new attribute `auth` on the request object where
+  // the token's payload will be stored and accessible by other parts of the
+  // app.
+  verifyToken(options)
+    .then(payload => {
+      req.auth = payload;
+      next();
+    })
+    .catch(err => next(createError({
+      status: UNAUTHORIZED,
+      message: err
+    })));
 };
+
+const requireValidAccessToken = requireValidToken(ACCESS);
+const requireValidRefreshToken = requireValidToken(REFRESH);
+
+Object.assign(exports, {
+  requireValidAccessToken,
+  requireValidRefreshToken
+});
