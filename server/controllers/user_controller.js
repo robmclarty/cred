@@ -47,13 +47,13 @@ const postUsers = (req, res, next) => {
     updates: req.body
   });
 
-  User
+  newUser
     .save()
     .then(() => {
       res.json({
         success: true,
         message: 'User created.',
-        user
+        user: newUser
       });
     })
     .catch(err => next(err));
@@ -105,22 +105,19 @@ const putUser = (req, res) => {
         }));
       }
 
-      const updatedUser = updateUser({
+      return updateUser({
         auth: req.auth,
         targetUser: user,
         updates: req.body
       });
-
-      updatedUser
-        .save()
-        .then(() => {
-          res.json({
-            success: true,
-            message: 'User updated.',
-            user: updatedUser
-          });
-        })
-        .catch(err => next(err));
+    })
+    .then(updatedUser => updatedUser.save())
+    .then(updatedUser => {
+      res.json({
+        success: true,
+        message: 'User updated.',
+        user: updatedUser
+      });
     })
     .catch(err => next(err));
 };
@@ -156,26 +153,23 @@ const getPermissions = (req, res, next) => {
           message: `No user found with id '${ req.params.id }'`
         }));
       }
+    })
+    .then(Resource.findOne({ name: req.params.resource_name }))
+    .then(resource => {
+      if (!resource) {
+        next(createError({
+          status: BAD_REQUEST,
+          message: `No resource found with name '${ req.params.resource_name }'`
+        }));
+      }
 
-      Resource
-        .findOne({ name: req.params.resource_name })
-        .then(resource => {
-          if (!resource) {
-            next(createError({
-              status: BAD_REQUEST,
-              message: `No resource found with name '${ req.params.resource_name }'`
-            }));
-          }
+      const permission = user.findPermission(resource.name);
 
-          const permission = user.findPermission(resource.name);
-
-          res.json({
-            success: true,
-            message: 'Permissions found.',
-            actions: permission ? permission.actions : []
-          });
-        })
-        .catch(err => next(err));
+      res.json({
+        success: true,
+        message: 'Permissions found.',
+        actions: permission ? permission.actions : []
+      });
     })
     .catch(err => next(err));
 };

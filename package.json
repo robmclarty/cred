@@ -1,7 +1,7 @@
 {
   "name": "authentik",
   "version": "1.0.0",
-  "description": "A simple authentication & authorization service for use in a JWT micro-service ecosystem.",
+  "description": "An easy authentication & authorization service for use in a JWT multi-service ecosystem.",
   "main": "server/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",

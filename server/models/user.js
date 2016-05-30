@@ -34,18 +34,22 @@ const UserSchema = new mongoose.Schema({
       message: 'must be URL-safe (use hyphens instead of spaces, like "my-cool-username")'
     }
   },
-  password: { type: String, required: false },
-  isActive: { type: Boolean, required: true, default: true },
-  isAdmin: { type: Boolean, required: true, default: false },
+  password: {
+    type: String,
+    required: true
+  },
   email: {
     type: String,
     unique: true,
+    sparse: true,
     required: true,
     validate: {
       validator: isValidEmail,
       message: '{ VALUE } is not a valid email address.'
     }
   },
+  isActive: { type: Boolean, required: true, default: true },
+  isAdmin: { type: Boolean, required: true, default: false },
   profile: {
     name: { type: String, required: false },
     location: { type: String, required: false },
@@ -73,15 +77,14 @@ UserSchema.pre('save', function (next) {
   if (!user.isModified('password')) return next();
 
   // If password has changed, hash it.
-  argon2.generateSalt(SALT_LENGTH).then(salt => {
-    argon2.hash(user.password, salt, ARGON2_OPTIONS).then(hash => {
+  argon2
+    .generateSalt(SALT_LENGTH)
+    .then(salt => argon2.hash(user.password, salt, ARGON2_OPTIONS))
+    .then(hash => {
       user.password = hash;
-
       next();
     })
     .catch(err => next(err));
-  })
-  .catch(err => next(err));
 });
 
 const verifyPassword = function (password) {
