@@ -9,14 +9,20 @@ const REVOKED_TOKEN_LABEL = 'token:revoked';
 // Given a tokenId (jti claim), check if it exists in the jtiCache (the blacklist)
 // and return true if it does. LRU will return 'undefined' if it cannot find
 // the id in the cache.
-const tokenIsRevoked = ({ tokenId = '', redis = undefined }) => {
-  const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
+const checkBlacklist = ({ tokenId = '', redis = undefined }) => {
+  return new Promise((resolve, reject) => {
+    const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
 
-  // If token's ID is found on the blacklist, the token is revoked.
-  return redis.get(blacklistedKey, (err, reply) => {
-    if (err || !reply) return false;
+    // If Redis isn't working, don't verify tokens.
+    if (!redis) reject('Cache server not accessible.');
 
-    return true;
+    // If token's ID is found on the blacklist, the token is revoked.
+    redis.get(blacklistedKey, (err, reply) => {
+      if (err || reply !== null) reject('Token has been revoked.');
+
+      // If token was not found on blacklist, it is still valid.
+      resolve();
+    });
   });
 }
 
@@ -76,16 +82,15 @@ const createToken = ({
   expiresIn = 0,
 }) => {
   return new Promise((resolve, reject) => {
-    const extendedPayload = Object.assign({
-      jti: shortid.generate()
-    }, payload);
     const options = {
+      jwtid: shortid.generate(), // jti claim
       issuer, // corresponds to verify() check
       algorithm,
       expiresIn
+      //audience // the intended tenant (user-definable tenant name string or client id)
     };
 
-    jwt.sign(extendedPayload, secret, options, (err, token) => {
+    jwt.sign(payload, secret, options, (err, token) => {
       if (err || !token) reject(`Failed to create token: ${ err }`);
 
       resolve(token);
@@ -106,7 +111,8 @@ const verifyToken = ({
   token = '',
   issuer = '',
   secret = '',
-  algorithm = 'HS256'
+  algorithm = 'HS256',
+  redis = undefined
 }) => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -114,10 +120,21 @@ const verifyToken = ({
       algorithms: [algorithm]
     };
 
+    // If there was an error, the payload is missing, the jti is missing, or
+    // the token is not present in the Redis cache whitelist, reject verify.
+    // Otherwise, resolve the payload.
     jwt.verify(token, secret, options, (err, payload) => {
-      if (err || !payload) reject(`Failed to authenticate token: ${ err }`);
+      if (err ||
+          !payload ||
+          !payload.jti) {
+        const msg = err ? err : 'Token missing id.';
 
-      resolve(payload);
+        reject(`Failed to authenticate token: ${ msg }`);
+      }
+
+      checkBlacklist({ tokenId: payload.jti, redis })
+        .then(resolve(payload))
+        .catch(err => reject(`Failed to authenticate token: ${ err }`));
     });
   });
 };

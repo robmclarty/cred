@@ -180,27 +180,27 @@ const postPermissions = (req, res, next) => {
     .findById(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
 
       Resource
         .findOne({ name: req.params.resource_name })
         .then(resource => {
           if (!resource) {
-            next(createError({
+            throw createError({
               status: BAD_REQUEST,
               message: `No resource found with name '${ req.params.resource_name }'`
-            }));
+            });
           }
 
           if (!req.body.actions) {
-            next(createError({
+            throw createError({
               status: BAD_REQUEST,
               message: 'No actions provided.'
-            }));
+            });
           }
 
           // Old permissions are replaced with new ones.
@@ -229,20 +229,20 @@ const deletePermissions = (req, res, next) => {
     .findById(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
 
       Resource
         .findOne({ name: req.params.resource_name })
         .then(resource => {
           if (!resource) {
-            next(createError({
+            throw createError({
               status: BAD_REQUEST,
               message: `No resource found with name '${ req.params.resource_name }'`
-            }));
+            });
           }
 
           user.removePermission(resource.name);

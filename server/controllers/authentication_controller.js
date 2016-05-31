@@ -15,6 +15,22 @@ const updateUserLoginAt = (user, timestamp) => {
   return user.save();
 };
 
+const accessTokenOptions = (app, payload) => ({
+  payload,
+  issuer: app.get('token-issuer'),
+  secret: app.get('token-access-private-key'),
+  algorithm: app.get('token-access-alg'),
+  expiresIn: app.get('token-access-expires-in')
+});
+
+const refreshTokenOptions = (app, payload) => ({
+  payload,
+  issuer: app.get('token-issuer'),
+  secret: app.get('token-refresh-secret'),
+  algorithm: app.get('token-refresh-alg'),
+  expiresIn: app.get('token-refresh-expires-in')
+});
+
 // Make sure the password is correct. If it isn't return unauthorized. If it
 // is, update the login date for the user and return the necessary token
 // settings/options needed for creating valid tokens.
@@ -31,28 +47,16 @@ const verifyUserPassword = (app, user, password) => {
       .verifyPassword(password)
       .then(match => {
         if (!match) {
-          reject(createError({
+          throw createError({
             status: UNAUTHORIZED,
             message: 'Authentication failed. Username or password did not match.'
-          }));
+          });
         }
       })
-      .then(updateUserLoginAt(user, Date.now()))
-      .then(resolve({
-        accessTokenOptions: {
-          payload: user.tokenPayload(),
-          issuer: app.get('token-issuer'),
-          secret: app.get('token-access-private-key'),
-          algorithm: app.get('token-access-alg'),
-          expiresIn: app.get('token-access-expires-in')
-        },
-        refreshTokenOptions: {
-          payload: user.tokenPayload(),
-          issuer: app.get('token-issuer'),
-          secret: app.get('token-refresh-secret'),
-          algorithm: app.get('token-refresh-alg'),
-          expiresIn: app.get('token-refresh-expires-in')
-        }
+      .then(() => updateUserLoginAt(user, Date.now()))
+      .then(() => resolve({
+        accessTokenOptions: accessTokenOptions(app, user.tokenPayload()),
+        refreshTokenOptions: refreshTokenOptions(app, user.tokenPayload())
       }))
       .catch(err => reject(err));
   });
@@ -119,25 +123,18 @@ const postTokens = (req, res, next) => {
 // returns a fresh access-token.
 const putTokens = (req, res, next) => {
   User
-    .findById(req.refreshAuth.userId)
+    .findById(req.auth.userId)
     .then(user => {
-      // No user found with that username.
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: 'Authentication failed. No user found that matches this token.'
-        }));
+        });
       }
 
-      return accessTokenOptions = {
-        payload: user.tokenPayload(),
-        keyPath: req.app.get('token-private-key-path'),
-        issuer: req.app.get('token-issuer'),
-        expiresIn: req.app.get('token-expires-in'),
-        algorithm: req.app.get('token-alg')
-      }
+      return accessTokenOptions(req.app, user.tokenPayload());
     })
-    .then(accessTokenOptions => createToken(accessTokenOptions))
+    .then(options => createToken(options))
     .then(accessToken => {
       res.json({
         success: true,

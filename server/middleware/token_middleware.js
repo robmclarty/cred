@@ -12,13 +12,18 @@ const REFRESH = 'refresh';
 
 // Check for the presence of a JSON Web Token called 'token' and verify that it
 // is valid by comparing it against a secret key.
+//
+// TODO: Refactor this function to be completely generic (i.e., don't depend
+// on any externals) so that it can be used and distributed to other resource
+// servers without changes.
 const requireValidToken = type => (req, res, next) => {
   const token = getTokenFromRequest(req);
   const options = {
     token,
     issuer: req.app.get('token-issuer'),
     secret: '',
-    algorithm: 'HS256'
+    algorithm: 'HS256',
+    redis: req.redis // attached to req from cache_middleware
   };
 
   // Token does not exist.

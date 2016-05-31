@@ -76,10 +76,10 @@ const postResources = (req, res, next) => {
     .findOne({ name: req.body.name })
     .then(existingResource => {
       if (existingResource) {
-        next(createError({
+        throw createError({
           status: FORBIDDEN,
           message: 'An app by that name already exists.'
-        }));
+        });
       }
 
       return resource.save()
@@ -99,10 +99,10 @@ const getResource = (req, res, next) => {
     .findOne({ name: req.params.resource_name })
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       res.json({
@@ -130,10 +130,10 @@ const putResource = (req, res, next) => {
     .findOne({ name: req.params.resource_name })
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'.`
-        }));
+        });
       }
 
       if (req.body.hasOwnProperty('name')) {
@@ -173,10 +173,10 @@ const deleteResource = (req, res, next) => {
     .findOne({ name: req.params.resource_name })
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       resource
@@ -198,10 +198,10 @@ const postActions = (req, res, next) => {
     .findOne(req.params.resource_name)
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       // If no actions are provided, the existing actions will be returned.
@@ -230,10 +230,10 @@ const getActions = (req, res, next) => {
     .findOne(req.params.resource_name)
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       res.json({
@@ -253,17 +253,17 @@ const deleteActions = (req, res, next) => {
     .findOne(req.params.resource_name)
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with the name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       if (!req.body.actions || !Array.isArray(req.body.actions)) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: 'No actions were provided to be deleted.'
-        }));
+        });
       }
 
       // If an array of actions to be deleted was provided, cycle through each
