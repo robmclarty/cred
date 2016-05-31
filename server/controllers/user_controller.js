@@ -209,16 +209,14 @@ const postPermissions = (req, res, next) => {
             actions: req.body.actions
           });
 
-          user
-            .save()
-            .then(() => {
-              res.json({
-                success: true,
-                message: 'Permissions updated.',
-                user
-              });
-            })
-            .catch(err => next(err));
+          return user.save();
+        })
+        .then(user => {
+          res.json({
+            success: true,
+            message: 'Permissions updated.',
+            user
+          });
         })
         .catch(err => next(err));
     })

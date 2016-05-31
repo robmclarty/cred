@@ -4,6 +4,7 @@ module.exports = {
   port: process.env.PORT || 3000,
   assetsPath: process.env.ASSETS_PATH || './public',
   database: process.env.DATABASE || 'mongodb://localhost:27017/authentik',
+  redis: process.env.REDIS || 'redis://localhost:6379',
   tokens: {
     issuer: process.env.ISSUER || 'authentik',
     access: {

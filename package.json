@@ -14,6 +14,7 @@
     "kerberos": "0.0.21",
     "mongoose": "4.4.19",
     "morgan": "1.7.0",
+    "redis": "2.6.0-2",
     "shortid": "2.2.6",
     "striptags": "2.1.1",
     "urlsafe-base64": "1.0.0"

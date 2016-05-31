@@ -153,9 +153,9 @@ const putTokens = (req, res, next) => {
 // The token is now no longer valid. Respond that the user is now "logged out".
 const deleteToken = (req, res, next) => {
   const options = {
-    id: req.auth.jti,
+    tokenId: req.auth.jti,
     exp: req.auth.exp,
-    redis: {}
+    redis: req.redis
   };
 
   revokeToken(options)

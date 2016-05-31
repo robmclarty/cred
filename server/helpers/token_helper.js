@@ -1,19 +1,23 @@
 'use strict';
 
-//let LRU = require('lru-cache');
-//let blacklist = LRU();
 const jwt = require('jsonwebtoken'); // based on npm 'jws'
 const jws = require('jws');
 const shortid = require('shortid');
 
+const REVOKED_TOKEN_LABEL = 'token:revoked';
+
 // Given a tokenId (jti claim), check if it exists in the jtiCache (the blacklist)
 // and return true if it does. LRU will return 'undefined' if it cannot find
 // the id in the cache.
-const tokenIsRevoked = tokenId => {
-  const blacklisted = blacklist.get(tokenId);
+const tokenIsRevoked = ({ tokenId = '', redis = undefined }) => {
+  const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
 
-  // If token's ID is on the blacklist, the token is revoked.
-  return typeof blacklisted !== 'undefined';
+  // If token's ID is found on the blacklist, the token is revoked.
+  return redis.get(blacklistedKey, (err, reply) => {
+    if (err || !reply) return false;
+
+    return true;
+  });
 }
 
 // If a bearer token has been sent in the authorization header, use that,
@@ -38,13 +42,24 @@ const getTokenFromRequest = req => {
 // valid (but revoked) are stored in the cache. LRU handles removing expired
 // tokens for us since we simply give each new entry a maxAge that is the time
 // from now until the token's expiration date.
-const revokeToken = ({ id = '', exp = 0, redis: {} }) => {
+//
+// TODO: Change this to a whitelist so that all issued tokens can be tracked and
+// controlled (if desired). A blacklist has no control over issued tokens
+// because it doesn't know about them out in the wild. So, for example, if an
+// emergency "revoke all tokens" action is required, only a whiltelist could do
+// that. Perhaps the blacklist is potentially faster, but at the cost of control.
+const revokeToken = ({ tokenId = '', exp = 0, redis = undefined }) => {
   return new Promise((resolve, reject) => {
+    const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const maxAge = exp - nowInSeconds;
 
     // Add the token to the blacklist (i.e., add the jti to the cache).
-    blacklist.set(id, id, maxAge);
+    if (redis) {
+      redis.set(blacklistedKey, tokenId);
+      redis.expire(blacklistedKey, maxAge);
+    }
+
     resolve();
   });
 };

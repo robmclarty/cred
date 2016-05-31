@@ -1,6 +1,6 @@
 'use strict';
 
-let {
+const {
   BAD_REQUEST,
   UNAUTHORIZED,
   FORBIDDEN,
@@ -10,6 +10,7 @@ let {
 } = require('../helpers/error_helper');
 
 const unauthorized = (err, req, res, next) => {
+  console.log('error: ', err);
   if (err.status !== UNAUTHORIZED) return next(err);
 
   res.status(UNAUTHORIZED).send({

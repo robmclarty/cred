@@ -38,7 +38,7 @@ const requireValidToken = type => (req, res, next) => {
     break;
   case REFRESH:
     Object.assign(options, {
-      secret: req.app.get('token-access-refresh-secret'),
+      secret: req.app.get('token-refresh-secret'),
       algorithm: req.app.get('token-refresh-alg')
     });
     break;
@@ -46,6 +46,8 @@ const requireValidToken = type => (req, res, next) => {
     // do nothing
   }
 
+  // ***** This is where the req.auth magic happens. *****
+  //
   // If valid token, create a new attribute `auth` on the request object where
   // the token's payload will be stored and accessible by other parts of the
   // app.

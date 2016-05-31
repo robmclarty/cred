@@ -28,7 +28,9 @@ if (process.env.NODE_ENV === ('development' || 'test')) {
 
 // Database
 mongoose.connect(config.database);
-mongoose.connection.on('error', (err) => console.log('Database Error: ', err));
+mongoose.connection.on('connected', () => console.log('Connected to Mongo.'));
+mongoose.connection.on('error', err => console.log('Database Error: ', err));
+mongoose.connection.on('disconnected', () => console.log('Disconnected from Mongo.'));
 
 // Use body-parser to get info from POST and/or URL parameters.
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -45,9 +47,11 @@ const authRoutes = require('./routes/auth_routes');
 const publicRoutes = require('./routes/public_routes');
 const userRoutes = require('./routes/user_routes');
 const resourceRoutes = require('./routes/resource_routes');
+const { setRedisClient } = require('./middleware/cache_middleware');
 const { requireValidAccessToken } = require('./middleware/token_middleware');
 
 app.use('/', [
+  setRedisClient(config.redis),
   authRoutes,
   publicRoutes
 ]);
