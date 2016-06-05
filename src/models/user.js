@@ -88,8 +88,6 @@ UserSchema.pre('save', function (next) {
 });
 
 const verifyPassword = function (password) {
-  console.log('password: ', password);
-  console.log('hash: ', this.password);
   return new Promise((resolve, reject) => {
     argon2
       .verify(this.password, password)

@@ -3,26 +3,44 @@
 const jwt = require('jsonwebtoken'); // based on npm 'jws'
 const jws = require('jws');
 const shortid = require('shortid');
+const lru = require('lru-cache');
 
 const REVOKED_TOKEN_LABEL = 'token:revoked';
+
+// Backup memory cache for blacklist.
+const blacklist = lru({
+  max: 1000,
+  maxAge: 1000 * 60 * 60 * 24 * 7
+});
 
 // Given a tokenId (jti claim), check if it exists in the jtiCache (the blacklist)
 // and return true if it does. LRU will return 'undefined' if it cannot find
 // the id in the cache.
-const checkBlacklist = ({ tokenId = '', redis = undefined }) => {
+const checkBlacklist = ({ tokenId = '', cache = undefined }) => {
   return new Promise((resolve, reject) => {
+    if (!tokenId) reject('No Token ID provided.');
+
     const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
 
-    // If Redis isn't working, don't verify tokens.
-    if (!redis) reject('Cache server not accessible.');
+    switch(cache.type) {
+    case 'redis':
+      // If token's ID is found on the blacklist, the token is revoked.
+      cache.client.get(blacklistedKey, (err, reply) => {
+        if (err || reply !== null) reject('Token has been revoked.');
 
-    // If token's ID is found on the blacklist, the token is revoked.
-    redis.get(blacklistedKey, (err, reply) => {
-      if (err || reply !== null) reject('Token has been revoked.');
-
-      // If token was not found on blacklist, it is still valid.
-      resolve();
-    });
+        // If token was not found on blacklist, it is still valid.
+        resolve();
+      });
+      break;
+    case 'memory':
+      // pass through to default memory store
+    default:
+      if (blacklist.get(blacklistedKey) === 'undefined') {
+        resolve();
+      } else {
+        reject('Token has been revoked.');
+      }
+    }
   });
 }
 
@@ -54,16 +72,20 @@ const getTokenFromRequest = req => {
 // because it doesn't know about them out in the wild. So, for example, if an
 // emergency "revoke all tokens" action is required, only a whiltelist could do
 // that. Perhaps the blacklist is potentially faster, but at the cost of control.
-const revokeToken = ({ tokenId = '', exp = 0, redis = undefined }) => {
+const revokeToken = ({ tokenId = '', exp = 0, cache = undefined }) => {
   return new Promise((resolve, reject) => {
     const blacklistedKey = `${ REVOKED_TOKEN_LABEL }:${ tokenId }`;
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const maxAge = exp - nowInSeconds;
 
-    // Add the token to the blacklist (i.e., add the jti to the cache).
-    if (redis) {
-      redis.set(blacklistedKey, tokenId);
-      redis.expire(blacklistedKey, maxAge);
+    switch(cache.type) {
+    case 'redis':
+      cache.client.set(blacklistedKey, tokenId);
+      cache.client.expire(blacklistedKey, maxAge);
+    case 'memory':
+      // pass through to default memory store
+    default:
+      blacklist.set(blacklistedKey, tokenId, maxAge);
     }
 
     resolve();
@@ -112,7 +134,7 @@ const verifyToken = ({
   issuer = '',
   secret = '',
   algorithm = 'HS256',
-  redis = undefined
+  cache = undefined
 }) => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -132,7 +154,7 @@ const verifyToken = ({
         reject(`Failed to authenticate token: ${ msg }`);
       }
 
-      checkBlacklist({ tokenId: payload.jti, redis })
+      checkBlacklist({ tokenId: payload.jti, cache })
         .then(resolve(payload))
         .catch(err => reject(`Failed to authenticate token: ${ err }`));
     });

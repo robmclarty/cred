@@ -1,8 +1,8 @@
 {
   "name": "authentik",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "An easy authentication & authorization service for use in a JWT multi-service ecosystem.",
-  "main": "server/index.js",
+  "main": "src/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
   "dependencies": {
@@ -12,6 +12,7 @@
     "express": "4.13.4",
     "jsonwebtoken": "7.0.0",
     "kerberos": "0.0.21",
+    "lru-cache": "4.0.1",
     "mongoose": "4.4.19",
     "morgan": "1.7.0",
     "redis": "2.6.0-2",
@@ -28,6 +29,6 @@
     "node": ">= 6.0.0"
   },
   "scripts": {
-    "start": "server/start.js"
+    "start": "node examples/simple.js"
   }
 }

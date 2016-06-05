@@ -1,7 +1,6 @@
 'use strict';
 
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 
 // Homepage (replace with an html website if desired).
 router.route('/')

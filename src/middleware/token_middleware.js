@@ -23,7 +23,7 @@ const requireValidToken = type => (req, res, next) => {
     issuer: req.app.get('token-issuer'),
     secret: '',
     algorithm: 'HS256',
-    redis: req.redis // attached to req from cache_middleware
+    cache: req.authentik.cache // attached to req from cache_middleware
   };
 
   // Token does not exist.
