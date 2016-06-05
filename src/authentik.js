@@ -60,15 +60,15 @@ const { setRedisClient } = require('./middleware/cache_middleware');
 //   cache: '',
 //   api: {
 //     tokens: {
-//       dbName: 'tokens',
+//       name: 'tokens',
 //       path: '/tokens'
 //     },
 //     users: {
-//       dbName: 'users',
+//       name: 'users',
 //       path: '/users'
 //     },
 //     resources: {
-//       dbName: 'resources',
+//       name: 'resources',
 //       path: '/resources'
 //     }
 //   },
