@@ -1,15 +1,12 @@
 'use strict';
 
 module.exports = {
-  port: process.env.PORT || 3000,
-  assetsPath: process.env.ASSETS_PATH || './public',
-  database: process.env.DATABASE || 'mongodb://localhost:27017/authentik',
   redis: process.env.REDIS || 'redis://localhost:6379',
   tokens: {
     issuer: process.env.ISSUER || 'authentik',
     access: {
-      privateKeyPath: process.env.PRIVATE_KEY || 'config/sample-private-key.pem',
-      publicKeyPath: process.env.PUBLIC_KEY || 'config/sample-public-key.pem',
+      privateKeyPath: process.env.PRIVATE_KEY || './config/sample-private-key.pem',
+      publicKeyPath: process.env.PUBLIC_KEY || './config/sample-public-key.pem',
       expiresIn: process.env.EXPIRES_IN || '24 hours',
       alg: 'ES384', // ECDSA using P-384 curve and SHA-384 hash algorithm
     },

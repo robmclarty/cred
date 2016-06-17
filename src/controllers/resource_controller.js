@@ -152,16 +152,14 @@ const putResource = (req, res, next) => {
         resource.actions = req.body.actions;
       }
 
-      resource
-        .save()
-        .then(() => {
-          res.json({
-            success: true,
-            message: 'Resource updated',
-            resource
-          });
-        })
-        .catch(err => next(err));
+      return resource.save();
+    })
+    .then(resource => {
+      res.json({
+        success: true,
+        message: 'Resource updated',
+        resource
+      });
     })
     .catch(err => next(err));
 };
@@ -179,16 +177,14 @@ const deleteResource = (req, res, next) => {
         });
       }
 
-      resource
-        .remove()
-        .then(() => {
-          res.json({
-            success: true,
-            message: 'Resource deleted.',
-            resource
-          });
-        })
-        .catch(err => next(err));
+      return resource.remove();
+    })
+    .then(resource => {
+      res.json({
+        success: true,
+        message: 'Resource deleted.',
+        resource
+      });
     })
     .catch(err => next(err));
 };

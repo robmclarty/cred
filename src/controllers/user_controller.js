@@ -77,10 +77,10 @@ const getUser = (req, res) => {
     .findById(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
 
       res.json({
@@ -99,10 +99,10 @@ const putUser = (req, res) => {
     .findById(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
 
       return updateUser({
@@ -127,10 +127,10 @@ const deleteUser = (req, res) => {
     .findByIdAndRemove(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
 
       res.json({
@@ -148,19 +148,19 @@ const getPermissions = (req, res, next) => {
     .findById(req.params.id)
     .then(user => {
       if (!user) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No user found with id '${ req.params.id }'`
-        }));
+        });
       }
     })
     .then(Resource.findOne({ name: req.params.resource_name }))
     .then(resource => {
       if (!resource) {
-        next(createError({
+        throw createError({
           status: BAD_REQUEST,
           message: `No resource found with name '${ req.params.resource_name }'`
-        }));
+        });
       }
 
       const permission = user.findPermission(resource.name);
