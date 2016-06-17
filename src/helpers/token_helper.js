@@ -1,7 +1,6 @@
 'use strict';
 
 const jwt = require('jsonwebtoken'); // based on npm 'jws'
-const jws = require('jws');
 const shortid = require('shortid');
 const lru = require('lru-cache');
 

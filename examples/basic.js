@@ -4,25 +4,19 @@ const { readFileSync } = require('fs');
 const bodyParser = require('body-parser');
 const express = require('express');
 const app = express();
-const authentik = require('../src/authentik2');
-const config = require('./config/server');
+const authentik = require('../src/authentik');
 
 app.use(bodyParser.json());
 
 const auth = authentik({
   issuer: 'authentik',
   cache: 'redis://localhost:6379',
-  accessOptions: {
-    privateKey: readFileSync('./keys/sample-private-key.pem'),
-    publicKey: readFileSync('./keys/sample-public-key.pem'),
-    expiresIn: '24 hours',
-    algorithm: 'ES384', // ECDSA using P-384 curve and SHA-384 hash algorithm
-  },
-  refreshOptions: {
-    secret: 'my_super_secret_secret',
-    expiresIn: '7 days',
-    algorithm: 'HS512', // HMAC using SHA-512 hash algorithm
-  }
+  accessSecret: readFileSync('./keys/sample-private-key.pem'),
+  accessExp: '24 hours',
+  accessAlg: 'ES384', // ECDSA using P-384 curve and SHA-384 hash algorithm
+  refreshSecret: 'my_super_secret_secret',
+  refreshExp: '7 days',
+  refreshAlg: 'HS512' // HMAC using SHA-512 hash algorithm
 });
 
 // Ultra simple authentication using hardcoded values.
