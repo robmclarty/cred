@@ -98,7 +98,7 @@ const authentikAuthorize = ({
   //   "iss": "authentik"
   // }
   const requirePermission = requiredActions => (req, res, next) => {
-    const permission = req.auth.permissions[name];
+    const permission = req[issuer].permissions[name];
 
     // If the token payload has a set of actions for this app's name and those
     // actions include at least one of the requiredActions, proceed to next().
@@ -116,3 +116,5 @@ const authentikAuthorize = ({
     requirePermission
   };
 };
+
+module.exports = authentikAuthorize;

@@ -29,6 +29,6 @@
     "node": ">= 6.0.0"
   },
   "scripts": {
-    "start": "node examples/test.js"
+    "start": "node examples/basic.js"
   }
 }

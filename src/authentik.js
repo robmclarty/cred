@@ -1,6 +1,8 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const shortid = require('shortid');
+const lru = require('lru-cache');
 const { setRedisClient } = require('./middleware/cache_middleware');
 
 const TOKEN_CACHE_LABEL = 'authentik:token';
@@ -18,12 +20,16 @@ const authentik = ({
   // A set of functions to be used for verifying authentication and generating
   // token payloads.
   const strategies = {};
+  let getPayload = undefined;
 
   const activeTokens = lru({
     max: 1000,
     maxAge: 1000 * 60 * 60 * 24 * 7
   });
 
+  // Stores an authentication strategy (a function) which is defined by the user
+  // and should return an object which will be passed into the tokenPayload
+  // function.
   const use = (name, strategy) => {
     if (!name) throw new Error('Authentication strategies must have a name');
     if (!strategy) throw new Error('You must define a strategy');
@@ -39,30 +45,23 @@ const authentik = ({
     return strategies;
   };
 
+  // Stores a user-defined function which should return a javascirpt object
+  // which represents the payload to be used for all token generation.
+  const tokenPayload = fn => {
+    if (!fn) throw new Error('You must define a function to generate a token payload.');
+    if (typeof fn !== 'function') throw new Error('Argument is not a function.');
+
+    getPayload = fn;
+
+    return fn;
+  };
+
   const createError = (status, msg) => {
     const err = new Error(msg);
 
     err.status = status;
 
     return err;
-  };
-
-  // Given a particular strategy, return Express middleware for authenticating.
-  // If authenticated, attach an object called "authentik" to the req object
-  // containing JWTs and other meta data for authentik.
-  const authenticate = name => (req, res, next) => {
-    // TODO: check if strategy called 'name' exists.
-    strategies[name](req)
-      .then(payload => createTokens(payload))
-      .then(({ payload, accessToken, refreshToken }) => {
-        req[issuer] = {
-          strategy: name,
-          payload,
-          tokens: { accessToken, refreshToken }
-        };
-        next();
-      })
-      .catch(msg => next(createError(401, msg)));
   };
 
   // Create a new token with the provided payload and return the generated token.
@@ -117,10 +116,34 @@ const authentik = ({
       .then(accessToken => createToken(refreshTokenOptions)
         .then(refreshToken => ({
           payload,
-          accessToken,
-          refreshToken
+          tokens: { accessToken, refreshToken }
         }))
       );
+  };
+
+  // Given a particular strategy, return Express middleware for authenticating.
+  // If authenticated, attach an object called "authentik" to the req object
+  // containing JWTs and other meta data for authentik.
+  const authenticate = name => (req, res, next) => {
+    if (getPayload === undefined) next(createError(500, 'Token payload not defined.'));
+    if (!strategies[name]) next(createError(500, `Strategy "${ name }" not defined.`));
+
+    strategies[name](req)
+      .then(user => Promise.all([user, createTokens(getPayload(user))]))
+      .then(results => {
+        const user = results[0];
+        const { payload, tokens } = results[1];
+
+        req[issuer] = {
+          strategy: name,
+          payload,
+          user,
+          tokens
+        };
+
+        next();
+      })
+      .catch(msg => next(createError(401, msg)));
   };
 
   const revoke = token => new Promise((resolve, reject) => {
@@ -186,6 +209,7 @@ const authentik = ({
   return {
     use,
     unuse,
+    tokenPayload,
     authenticate,
     verifyActive,
     revoke,
