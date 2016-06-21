@@ -7,7 +7,7 @@ const app = express();
 const authentik = require('../src/authentik');
 const morgan = require('morgan');
 const authentikAuthorize = require('../src/authentik-authorize');
-const User = require('./modesl/user');
+const User = require('../src/models/user');
 
 app.set('name', 'my-app-name');
 app.set('issuer', 'my-issuer-name');
@@ -44,35 +44,50 @@ const authorizeAccess = authentikAuthorize({
 
 // Ultra simple authentication using hardcoded values.
 // Resolves with a token payload, or an error message.
+// auth.use('basic', req => User
+//   .findOne({ username: req.body.username })
+//   .then(user => {
+//     if (user.username !== req.body.username) {
+//       throw 'Username and password do not match.';
+//     }
+//   })
+// );
+
 auth.use('basic', req => {
-  return User
-    .findOne({ username: req.body.username })
-    .then(user => {
-      if (user.username !== req.body.username) {
+  return Promise.resolve()
+    .then(() => {
+      if (req.body.username !== 'admin' ||
+          req.body.password !== 'password') {
         throw 'Username and password do not match.';
       }
+
+      // Return a fake "user" object.
+      return {
+        username: 'admin',
+        password: 'password',
+        id: '12345',
+        email: 'admin@email.com'
+      };
     })
 });
 
 // Return a javascript object to be used as the payload for all tokens.
 // RECOMMENDED: Create a function on the user model that does this rather
 // than explicitly defining it here.
-auth.tokenPayload(user => {
-  return {
-    username: 'admin',
-    id: '123456',
-    isActive: true,
-    permissions: {
-      'my-app-name': {
-        actions: ['action1', 'action2', 'actionN']
-      }
+auth.tokenPayload(user => ({
+  username: 'admin',
+  id: '123456',
+  isActive: true,
+  permissions: {
+    'my-app-name': {
+      actions: ['action1', 'action2', 'actionN']
     }
-  };
-});
+  }
+}));
 
 // Get tokens from authenticated login.
 app.post('/login', auth.authenticate('basic'), (req, res, next) => {
-  console.log('auth: ', req['my-issuer-name'].tokens);
+  console.log('auth: ', req['my-issuer-name']);
   res.json({
     message: 'Logged in.',
     tokens: req['my-issuer-name'].tokens

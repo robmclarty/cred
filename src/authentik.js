@@ -74,29 +74,25 @@ const authentik = ({
     secret = '',
     algorithm = 'HS256',
     expiresIn = 0,
-  }) => {
-    return new Promise((resolve, reject) => {
-      const options = {
-        jwtid: shortid.generate(), // jti claim
-        issuer, // corresponds to verify() check
-        algorithm,
-        expiresIn
-        //audience // the intended tenant (user-definable tenant name string or client id)
-      };
+  }) => new Promise((resolve, reject) => {
+    const options = {
+      jwtid: shortid.generate(), // jti claim
+      issuer, // corresponds to verify() check
+      algorithm,
+      expiresIn
+      //audience // the intended tenant (user-definable tenant name string or client id)
+    };
 
-      jwt.sign(payload, secret, options, (err, token) => {
-        if (err || !token) reject(`Failed to create token: ${ err }`);
+    jwt.sign(payload, secret, options, (err, token) => {
+      if (err || !token) reject(`Failed to create token: ${ err }`);
 
-        resolve(token);
-      });
+      resolve(token);
     });
-  };
+  });
 
   // Transform a payload into an object containing two tokens: `accessToken` and
   // `refreshToken`.
   const createTokens = payload => {
-    // TODO: assign standard token attributes based on initialize settings.
-    // TODO: differentiate between "secret string" and "private key".
     const accessTokenOptions = {
       payload,
       issuer,
@@ -112,13 +108,18 @@ const authentik = ({
       algorithm: refreshAlg
     };
 
-    return createToken(accessTokenOptions)
-      .then(accessToken => createToken(refreshTokenOptions)
-        .then(refreshToken => ({
-          payload,
-          tokens: { accessToken, refreshToken }
-        }))
-      );
+    return Promise
+      .all([
+        createToken(accessTokenOptions),
+        createToken(refreshTokenOptions)
+      ])
+      .then(tokens => ({
+        payload,
+        tokens: {
+          accessToken: tokens[0],
+          refreshToken: tokens[1]
+        }
+      }));
   };
 
   // Given a particular strategy, return Express middleware for authenticating.
@@ -129,7 +130,10 @@ const authentik = ({
     if (!strategies[name]) next(createError(500, `Strategy "${ name }" not defined.`));
 
     strategies[name](req)
-      .then(user => Promise.all([user, createTokens(getPayload(user))]))
+      .then(user => Promise.all([
+        user,
+        createTokens(getPayload(user))
+      ]))
       .then(results => {
         const user = results[0];
         const { payload, tokens } = results[1];
