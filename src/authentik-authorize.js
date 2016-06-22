@@ -46,6 +46,27 @@ const authentikAuthorize = ({
     });
   });
 
+  // Middleware that verifies a valid access-token and attaches its payload to
+  // the request for use in other functions down the middleware chain.
+  const requireToken = (req, res, next) => {
+    const token = tokenFromReq(req);
+
+    if (!token) return next(createError(401, 'No token provided or missing authorization header.'));
+
+    verify(token)
+      .then(payload => {
+        if (!payload) throw 'Token has no payload.';
+
+        req[issuer] = {
+          payload,
+          token
+        };
+
+        next();
+      })
+      .catch(err => next(createError(401, `Problem authenticating: ${ err }`)));
+  };
+
   // If at least one of the permittedActions exists in requiredActions, then consider
   // the minimum requirements for authorization satisfied, and thus has permission.
   // @requiredActions - Array|String - The necessary actions required to have permission.
@@ -98,14 +119,15 @@ const authentikAuthorize = ({
   //   "iss": "authentik"
   // }
   const requirePermission = requiredActions => (req, res, next) => {
-    const permission = req[issuer].permissions[name];
+    // NOTE: This requires the existence of req[issuer] with a property called
+    // "payload" that has "permissions". This should exist if the middleware
+    // requireAccessToken was used before calling this function.
+    const permission = req[issuer].payload.permissions[name];
 
     // If the token payload has a set of actions for this app's name and those
     // actions include at least one of the requiredActions, proceed to next().
-    if (!resourceName ||
-        !permission ||
-        !hasPermission(requiredActions, permission.actions))
-      next(createError(401, 'Insufficient permissions.'));
+    if (!permission || !hasPermission(requiredActions, permission.actions))
+      return next(createError(401, 'Insufficient permissions.'));
 
     next();
   }
@@ -113,6 +135,7 @@ const authentikAuthorize = ({
   return {
     tokenFromReq,
     verify,
+    requireToken,
     requirePermission
   };
 };

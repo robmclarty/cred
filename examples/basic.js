@@ -74,6 +74,8 @@ auth.use('basic', req => {
 // Return a javascript object to be used as the payload for all tokens.
 // RECOMMENDED: Create a function on the user model that does this rather
 // than explicitly defining it here.
+//auth.tokenPayload(user => user.getPayload());
+
 auth.tokenPayload(user => ({
   username: 'admin',
   id: '123456',
@@ -95,9 +97,15 @@ app.post('/login', auth.authenticate('basic'), (req, res, next) => {
 });
 
 // A custom endpoint with specific permission requirements.
-app.use('/custom', authorizeAccess.requirePermission(['action1', 'action2']), (req, res, next) => {
-  res.json({ message: 'made it' });
-});
+// authorizeAccess.requirePermission(['action1', 'action2'])
+app.use(
+  '/custom',
+  authorizeAccess.requireToken,
+  authorizeAccess.requirePermission('action19'),
+  (req, res, next) => {
+    res.json({ message: 'made it' });
+  }
+);
 
 // Root endpoint
 app.use('/', (req, res, next) => {
@@ -105,6 +113,13 @@ app.use('/', (req, res, next) => {
 });
 
 // Use your own error handling
+app.use((err, req, res, next) => {
+  res.status(401).send({
+    message: err.message || 'Not authorized.',
+    error: err
+  });
+});
+
 app.use((err, req, res, next) => {
   res.status(500).send({
     message: err.message || 'Internal server error.',
