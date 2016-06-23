@@ -15,6 +15,7 @@
     "lru-cache": "4.0.1",
     "mongoose": "4.4.19",
     "morgan": "1.7.0",
+    "parambulator": "1.5.2",
     "redis": "2.6.0-2",
     "shortid": "2.2.6",
     "striptags": "2.1.1",

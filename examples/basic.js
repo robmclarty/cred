@@ -17,42 +17,37 @@ app.use(bodyParser.json());
 app.use(morgan('dev'));
 
 const auth = authentik({
-  issuer: 'my-issuer-name',
+  issuer: app.get('issuer'),
   cache: 'redis://localhost:6379',
-  accessSecret: readFileSync('./keys/sample-private-key.pem'),
-  accessExp: '24 hours',
-  accessAlg: 'ES384', // ECDSA using P-384 curve and SHA-384 hash algorithm
-  refreshSecret: 'my_super_secret_secret',
-  refreshExp: '7 days',
-  refreshAlg: 'HS512' // HMAC using SHA-512 hash algorithm
+  accessToken: {
+    key: readFileSync('./keys/sample-private-key.pem'),
+    exp: '24 hours',
+    alg: 'ES384', // ECDSA using P-384 curve and SHA-384 hash algorithm
+  },
+  refreshToken: {
+    key: 'my_super_secret_secret',
+    exp: '7 days',
+    alg: 'HS512' // HMAC using SHA-512 hash algorithm
+  }
 });
 
 // Authorize refresh tokens to create new access tokens.
-const authorizeRefresh = authentikAuthorize({
-  issuer: 'my-issuer-name',
-  secret: 'my_super_secret_secret',
+const authorizedRefresh = authentikAuthorize({
+  issuer: app.get('issuer'),
+  key: 'my_super_secret_secret',
   alg: 'HS512'
 });
 
 // Authorize access tokens for using resources (e.g., user accounts, etc.).
-const authorizeAccess = authentikAuthorize({
+const authorizedAccess = authentikAuthorize({
   name: 'my-app-name',
-  issuer: 'my-issuer-name',
-  secret: readFileSync('./keys/sample-public-key.pem'),
+  issuer: app.get('issuer'),
+  key: readFileSync('./keys/sample-public-key.pem'),
   alg: 'ES384'
 });
 
 // Ultra simple authentication using hardcoded values.
 // Resolves with a token payload, or an error message.
-// auth.use('basic', req => User
-//   .findOne({ username: req.body.username })
-//   .then(user => {
-//     if (user.username !== req.body.username) {
-//       throw 'Username and password do not match.';
-//     }
-//   })
-// );
-
 auth.use('basic', req => {
   return Promise.resolve()
     .then(() => {
@@ -61,35 +56,24 @@ auth.use('basic', req => {
         throw 'Username and password do not match.';
       }
 
-      // Return a fake "user" object.
+      // Return a javascript object to be used as the payload for all tokens.
+      // RECOMMENDED: Create a function on the user model that does this rather
+      // than explicitly defining it here.
       return {
         username: 'admin',
-        password: 'password',
-        id: '12345',
-        email: 'admin@email.com'
+        id: '123456',
+        isActive: true,
+        permissions: {
+          'my-app-name': {
+            actions: ['action1', 'action2', 'actionN']
+          }
+        }
       };
-    })
+    });
 });
-
-// Return a javascript object to be used as the payload for all tokens.
-// RECOMMENDED: Create a function on the user model that does this rather
-// than explicitly defining it here.
-//auth.tokenPayload(user => user.getPayload());
-
-auth.tokenPayload(user => ({
-  username: 'admin',
-  id: '123456',
-  isActive: true,
-  permissions: {
-    'my-app-name': {
-      actions: ['action1', 'action2', 'actionN']
-    }
-  }
-}));
 
 // Get tokens from authenticated login.
 app.post('/login', auth.authenticate('basic'), (req, res, next) => {
-  console.log('auth: ', req['my-issuer-name']);
   res.json({
     message: 'Logged in.',
     tokens: req['my-issuer-name'].tokens
@@ -100,8 +84,8 @@ app.post('/login', auth.authenticate('basic'), (req, res, next) => {
 // authorizeAccess.requirePermission(['action1', 'action2'])
 app.use(
   '/custom',
-  authorizeAccess.requireToken,
-  authorizeAccess.requirePermission('action19'),
+  authorizedAccess.requireValidToken,
+  authorizedAccess.requirePermission('action1'),
   (req, res, next) => {
     res.json({ message: 'made it' });
   }

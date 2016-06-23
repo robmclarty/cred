@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const authentikAuthorize = ({
   name = 'resource',
   issuer = 'authentik',
-  secret = 'access-secret',
+  key = 'access-secret',
   alg = 'HS256'
 }) => {
   const createError = (status, msg) => {
@@ -38,7 +38,7 @@ const authentikAuthorize = ({
       algorithms: [alg]
     };
 
-    jwt.verify(token, secret, options, (err, payload) => {
+    jwt.verify(token, key, options, (err, payload) => {
       if (err || !payload || !payload.jti)
         reject(`Failed to authenticate token: ${ err }`);
 
@@ -48,20 +48,14 @@ const authentikAuthorize = ({
 
   // Middleware that verifies a valid access-token and attaches its payload to
   // the request for use in other functions down the middleware chain.
-  const requireToken = (req, res, next) => {
+  const requireValidToken = (req, res, next) => {
     const token = tokenFromReq(req);
 
     if (!token) return next(createError(401, 'No token provided or missing authorization header.'));
 
     verify(token)
       .then(payload => {
-        if (!payload) throw 'Token has no payload.';
-
-        req[issuer] = {
-          payload,
-          token
-        };
-
+        req[issuer] = { payload, token };
         next();
       })
       .catch(err => next(createError(401, `Problem authenticating: ${ err }`)));
@@ -122,6 +116,7 @@ const authentikAuthorize = ({
     // NOTE: This requires the existence of req[issuer] with a property called
     // "payload" that has "permissions". This should exist if the middleware
     // requireAccessToken was used before calling this function.
+    console.log(JSON.stringify(req[issuer]));
     const permission = req[issuer].payload.permissions[name];
 
     // If the token payload has a set of actions for this app's name and those
@@ -135,7 +130,7 @@ const authentikAuthorize = ({
   return {
     tokenFromReq,
     verify,
-    requireToken,
+    requireValidToken,
     requirePermission
   };
 };
