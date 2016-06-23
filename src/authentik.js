@@ -131,7 +131,7 @@ const authentik = ({
         required$: true,
 
         "*": {
-          unique$: true,
+          //unique$: true,
 
           actions: {
             required$: true,
@@ -156,10 +156,11 @@ const authentik = ({
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
   const register = token => new Promise((resolve, reject) => {
-    if (!token.jti) reject('No Token ID.');
+    const payload = jwt.decode(token);
+
+    if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const payload = jwt.decode(token);
     const key = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const maxAge = payload.exp - nowInSeconds;
@@ -180,10 +181,11 @@ const authentik = ({
   // whitelist of valid tokens. If an id is not present in this cache it is
   // considered "revoked" or "invalid".
   const revoke = token => new Promise((resolve, reject) => {
-    if (!token.jti) reject('No Token ID.');
+    const payload = jwt.decode(token);
+
+    if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const payload = jwt.decode(token);
     const key = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
 
     switch(cache) {
@@ -200,7 +202,9 @@ const authentik = ({
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
   const verifyActive = token => new Promise((resolve, reject) => {
-    if (!token.jti) reject('No Token ID.');
+    const payload = jwt.decode(token);
+
+    if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
     switch(cache) {
@@ -216,6 +220,24 @@ const authentik = ({
     }
 
     resolve(token);
+  });
+
+  // Assuming the token (should be refresh token) has already been authorized,
+  // create new access and refresh tokens.
+  const refresh = token => new Promise((resolve, reject) => {
+    createAccessAndRefreshTokens(jwt.decode(token))
+      .then(results => {
+        const { payload, tokens } = results;
+
+        // Remove the old refresh token and register the newly created one.
+        return Promise.all([
+          tokens,
+          revoke(token),
+          register(tokens.refreshToken)
+        ]);
+      })
+      .then(results => resolve(results[0])) // return tokens object
+      .catch(err => reject(`Problem refreshing tokens: ${ err }`));
   });
 
   // Given a particular strategy, return Express middleware for authenticating.
@@ -237,8 +259,7 @@ const authentik = ({
           tokens
         };
 
-        //return register(tokens.refreshToken);
-        returm;
+        return register(tokens.refreshToken);
       })
       .then(() => next())
       .catch(msg => next(createError(401, msg)));
@@ -250,7 +271,8 @@ const authentik = ({
     authenticate,
     verifyActive,
     revoke,
-    register
+    register,
+    refresh
   };
 };
 
