@@ -7,6 +7,7 @@ const parambulator = require('parambulator');
 const { setRedisClient } = require('./middleware/cache_middleware');
 
 const TOKEN_CACHE_LABEL = 'authentik:token';
+const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
 
 const authentik = ({
   issuer = 'authentik',
@@ -28,7 +29,7 @@ const authentik = ({
 
   const activeTokens = lru({
     max: 1000,
-    maxAge: 1000 * 60 * 60 * 24 * 7
+    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
   });
 
   // Stores an authentication strategy (a function) which is defined by the user
@@ -57,6 +58,18 @@ const authentik = ({
     return err;
   };
 
+  // Returns a payload with the standard JWT claims stripped out which are used
+  // in node-jsonwebtoken's `options` parameter. These claims cannot be in both
+  // the payload and the options parameter so must be stripped from the payload
+  // when signing new tokens.
+  const excludeClaims = payload => {
+    return Object.keys(payload).reduce((strippedPayload, key) => {
+      return !EXCLUDED_JWT_CLAIMS.includes(key) ?
+        Object.assign(strippedPayload, { [key]: payload[key] }) :
+        strippedPayload;
+    }, {});
+  };
+
   // Create a new token with the provided payload and return the generated token.
   // Merge user-defined payload with some specific token claims (e.g., jti).
   // See https://github.com/auth0/node-jsonwebtoken for errors generated
@@ -75,7 +88,7 @@ const authentik = ({
       expiresIn
     };
 
-    jwt.sign(payload, secret, options, (err, token) => {
+    jwt.sign(excludeClaims(payload), secret, options, (err, token) => {
       if (err || !token) reject(`Failed to create token: ${ err }`);
 
       resolve(token);
@@ -130,9 +143,7 @@ const authentik = ({
       permissions: {
         required$: true,
 
-        "*": {
-          //unique$: true,
-
+        '*': {
           actions: {
             required$: true,
             type$: 'array',
@@ -145,7 +156,7 @@ const authentik = ({
 
     return new Promise((resolve, reject) => {
       payloadCheck.validate(payload, err => {
-        if (err) reject('Payload is not formatted properly');
+        if (err) reject(`Payload is not formatted properly: ${ err }`);
 
         resolve(payload);
       });
@@ -222,6 +233,15 @@ const authentik = ({
     resolve(token);
   });
 
+  const getCache = () => {
+    switch(cache) {
+    case 'redis':
+      break;
+    case 'memory': default:
+      return activeTokens.dump();
+    }
+  };
+
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
   const refresh = token => new Promise((resolve, reject) => {
@@ -244,7 +264,6 @@ const authentik = ({
   // If authenticated, attach an object called "authentik" to the req object
   // containing JWTs and other meta data for authentik.
   const authenticate = name => (req, res, next) => {
-    //if (getPayload === undefined) next(createError(500, 'Token payload not defined.'));
     if (!strategies[name]) next(createError(500, `Strategy "${ name }" not defined.`));
 
     strategies[name](req)
@@ -270,6 +289,7 @@ const authentik = ({
     unuse,
     authenticate,
     verifyActive,
+    getCache,
     revoke,
     register,
     refresh

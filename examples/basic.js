@@ -16,6 +16,10 @@ app.use(bodyParser.json());
 
 app.use(morgan('dev'));
 
+
+// Setup Auth
+// ----------
+
 const auth = authentik({
   issuer: app.get('issuer'),
   cache: 'redis://localhost:6379',
@@ -72,17 +76,27 @@ auth.use('basic', req => {
     });
 });
 
+
+// API Endpoints
+// -------------
+
+// Root endpoint
+app.get('/', (req, res, next) => {
+  res.json({ message: 'Welcome to the homepage!' });
+});
+
 // Get tokens from authenticated login.
 app.post('/login', auth.authenticate('basic'), (req, res, next) => {
+  console.log(auth.getCache());
   res.json({
     message: 'Logged in.',
-    tokens: req['my-issuer-name'].tokens
+    tokens: req[app.get('issuer')].tokens
   });
 });
 
 // A custom endpoint with specific permission requirements.
 // authorizeAccess.requirePermission(['action1', 'action2'])
-app.use(
+app.get(
   '/custom',
   authorizedAccess.requireValidToken,
   authorizedAccess.requirePermission('action1'),
@@ -91,12 +105,34 @@ app.use(
   }
 );
 
-// Root endpoint
-app.use('/', (req, res, next) => {
-  res.json({ message: 'Welcome to the homepage!' });
+app.put('/refresh', authorizedRefresh.requireValidToken, (req, res, next) => {
+  auth.refresh(req[app.get('issuer')].token)
+    .then(freshTokens => {
+      console.log(auth.getCache());
+      res.json({
+        message: 'Tokens refreshed.',
+        tokens: freshTokens
+      });
+    })
+    .catch(err => next(err));
 });
 
-// Use your own error handling
+app.delete('/revoke', authorizedRefresh.requireValidToken, (req, res, next) => {
+  auth.revoke(req[app.get('issuer')].token)
+    .then(revokedToken => {
+      console.log(auth.getCache());
+      res.json({
+        message: 'Token revoked.',
+        token: revokedToken
+      });
+    })
+    .catch(err => next(err));
+});
+
+
+// Error Handling
+// --------------
+
 app.use((err, req, res, next) => {
   res.status(401).send({
     message: err.message || 'Not authorized.',
@@ -115,7 +151,10 @@ app.use((req, res, next) => {
   res.status(404).send({ message: 'Page not found.' });
 });
 
+
 // Start the server
+// ----------------
+
 app.listen(3000, () => {
   console.log(`Server started at port 3000`);
 });
