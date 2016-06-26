@@ -13,7 +13,7 @@
     "authentication",
     "authorization",
     "jwt",
-    "json"
+    "json",
     "web",
     "tokens",
     "api",
