@@ -2,7 +2,7 @@
   "name": "cred",
   "version": "0.1.0",
   "description": "Simpler JWT authentication & authorization for express APIs.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
   "dependencies": {
