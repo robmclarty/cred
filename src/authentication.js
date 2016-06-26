@@ -4,13 +4,13 @@ const jwt = require('jsonwebtoken');
 const shortid = require('shortid');
 const lru = require('lru-cache');
 const parambulator = require('parambulator');
-const { setRedisClient } = require('./middleware/cache_middleware');
+const { setRedisClient } = require('./whitelist');
 
 const TOKEN_CACHE_LABEL = 'authentik:token';
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
 
-const authentik = ({
-  issuer = 'authentik',
+const authentication = ({
+  issuer = 'cred',
   cache = 'memory',
   accessToken = {
     key: 'access-secret',
@@ -296,4 +296,4 @@ const authentik = ({
   };
 };
 
-module.exports = authentik;
+module.exports = authentication;

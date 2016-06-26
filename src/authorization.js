@@ -2,9 +2,9 @@
 
 const jwt = require('jsonwebtoken');
 
-const authentikAuthorize = ({
+const authorization = ({
   name = 'resource',
-  issuer = 'authentik',
+  issuer = 'cred',
   key = 'access-secret',
   alg = 'HS256'
 }) => {
@@ -135,4 +135,4 @@ const authentikAuthorize = ({
   };
 };
 
-module.exports = authentikAuthorize;
+module.exports = authorization;
