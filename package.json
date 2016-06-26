@@ -1,10 +1,28 @@
 {
   "name": "cred",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Simpler JWT authentication & authorization for express APIs.",
   "main": "dist/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robmclarty/cred.git"
+  },
+  "keywords": [
+    "authentication",
+    "authorization",
+    "jwt",
+    "json"
+    "web",
+    "tokens",
+    "api",
+    "permissions",
+    "actions",
+    "key",
+    "signed",
+    "security"
+  ],
   "dependencies": {
     "jsonwebtoken": "7.0.0",
     "lru-cache": "4.0.1",
