@@ -48,7 +48,7 @@ const authorization = ({
 
   // Middleware that verifies a valid access-token and attaches its payload to
   // the request for use in other functions down the middleware chain.
-  const requireValidToken = (req, res, next) => {
+  const requireToken = (req, res, next) => {
     const token = tokenFromReq(req);
 
     if (!token) return next(createError(401, 'No token provided or missing authorization header.'));
@@ -130,7 +130,7 @@ const authorization = ({
   return {
     tokenFromReq,
     verify,
-    requireValidToken,
+    requireToken,
     requirePermission
   };
 };
