@@ -10,17 +10,18 @@ const TOKEN_CACHE_LABEL = 'authentik:token';
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
 
 const authentication = ({
-  issuer = 'cred',
+  key = 'cred',
+  issuer = 'cred-issuer',
   cache = 'memory',
   accessToken = {
-    key: 'access-secret',
-    exp: '24 hours',
-    alg: 'HS256'
+    secret: 'access-secret',
+    expiresIn: '24 hours',
+    algorithm: 'HS256'
   },
   refreshToken = {
-    key: 'refresh-secret',
-    exp: '7 days',
-    alg: 'HS256'
+    secret: 'refresh-secret',
+    expiresIn: '7 days',
+    algorithm: 'HS256'
   }
 }) => {
   // A set of functions to be used for verifying authentication and generating
@@ -63,9 +64,9 @@ const authentication = ({
   // the payload and the options parameter so must be stripped from the payload
   // when signing new tokens.
   const excludeClaims = payload => {
-    return Object.keys(payload).reduce((strippedPayload, key) => {
-      return !EXCLUDED_JWT_CLAIMS.includes(key) ?
-        Object.assign(strippedPayload, { [key]: payload[key] }) :
+    return Object.keys(payload).reduce((strippedPayload, jwtKey) => {
+      return !EXCLUDED_JWT_CLAIMS.includes(jwtKey) ?
+        Object.assign(strippedPayload, { [jwtKey]: payload[jwtKey] }) :
         strippedPayload;
     }, {});
   };
@@ -101,16 +102,16 @@ const authentication = ({
     const accessTokenOptions = {
       payload,
       issuer,
-      secret: accessToken.key,
-      expiresIn: accessToken.exp,
-      algorithm: accessToken.alg
+      secret: accessToken.secret,
+      expiresIn: accessToken.expiresIn,
+      algorithm: accessToken.algorithm
     };
     const refreshTokenOptions = {
       payload,
       issuer,
-      secret: refreshToken.key,
-      expiresIn: refreshToken.exp,
-      algorithm: refreshToken.alg
+      secret: refreshToken.secret,
+      expiresIn: refreshToken.expiresIn,
+      algorithm: refreshToken.algorithm
     };
 
     return Promise
@@ -172,17 +173,17 @@ const authentication = ({
     if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const key = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
+    const cacheKey = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const maxAge = payload.exp - nowInSeconds;
 
     switch(cache) {
     case 'redis':
-      activeTokens.client.set(key, payload.jti);
-      activeTokens.client.expire(key, maxAge);
+      activeTokens.client.set(cacheKey, payload.jti);
+      activeTokens.client.expire(cacheKey, maxAge);
       break;
     case 'memory': default:
-      activeTokens.set(key, payload.jti, maxAge);
+      activeTokens.set(cacheKey, payload.jti, maxAge);
     }
 
     resolve(token);
@@ -197,14 +198,14 @@ const authentication = ({
     if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const key = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
+    const cacheKey = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
 
     switch(cache) {
     case 'redis':
-      activeTokens.client.del(key);
+      activeTokens.client.del(cacheKey);
       break;
     case 'memory': default:
-      activeTokens.del(key);
+      activeTokens.del(cacheKey);
     }
 
     resolve(token);
@@ -220,13 +221,13 @@ const authentication = ({
 
     switch(cache) {
     case 'redis':
-      activeTokens.client.get(key, (err, reply) => {
+      activeTokens.client.get(cacheKey, (err, reply) => {
         if (err || reply === null)
           reject('Token is no longer active.');
       });
       break;
     case 'memory': default:
-      if (activeTokens.get(key) === 'undefined')
+      if (activeTokens.get(cacheKey) === 'undefined')
         reject('Token is no longer active.');
     }
 
@@ -272,7 +273,7 @@ const authentication = ({
       .then(results => {
         const { payload, tokens } = results;
 
-        req[issuer] = {
+        req[key] = {
           strategy: name,
           payload,
           tokens
@@ -281,7 +282,7 @@ const authentication = ({
         return register(tokens.refreshToken);
       })
       .then(() => next())
-      .catch(msg => next(createError(401, msg)));
+      .catch(msg => next(createError(401, `Unauthorized: ${ msg }`)));
   };
 
   return {

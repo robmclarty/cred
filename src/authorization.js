@@ -3,10 +3,11 @@
 const jwt = require('jsonwebtoken');
 
 const authorization = ({
+  key = 'cred',
   name = 'resource',
   issuer = 'cred',
-  key = 'access-secret',
-  alg = 'HS256'
+  secret = 'access-secret',
+  algorithm = 'HS256'
 }) => {
   const createError = (status, msg) => {
     const err = new Error(msg);
@@ -35,10 +36,10 @@ const authorization = ({
   const verify = token => new Promise((resolve, reject) => {
     const options = {
       issuer,
-      algorithms: [alg]
+      algorithms: [algorithm]
     };
 
-    jwt.verify(token, key, options, (err, payload) => {
+    jwt.verify(token, secret, options, (err, payload) => {
       if (err || !payload || !payload.jti)
         reject(`Failed to authenticate token: ${ err }`);
 
@@ -55,7 +56,7 @@ const authorization = ({
 
     verify(token)
       .then(payload => {
-        req[issuer] = { payload, token };
+        req[key] = { payload, token };
         next();
       })
       .catch(err => next(createError(401, `Problem authenticating: ${ err }`)));
@@ -116,8 +117,8 @@ const authorization = ({
     // NOTE: This requires the existence of req[issuer] with a property called
     // "payload" that has "permissions". This should exist if the middleware
     // requireAccessToken was used before calling this function.
-    console.log(JSON.stringify(req[issuer]));
-    const permission = req[issuer].payload.permissions[name];
+    console.log(JSON.stringify(req[key]));
+    const permission = req[key].payload.permissions[name];
 
     // If the token payload has a set of actions for this app's name and those
     // actions include at least one of the requiredActions, proceed to next().
