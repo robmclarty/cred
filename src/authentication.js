@@ -13,12 +13,12 @@ const authentication = ({
   key = 'cred',
   issuer = 'cred-issuer',
   cache = 'memory',
-  accessToken = {
+  accessOpts = {
     secret: 'access-secret',
     expiresIn: '24 hours',
     algorithm: 'HS256'
   },
-  refreshToken = {
+  refreshOpts = {
     secret: 'refresh-secret',
     expiresIn: '7 days',
     algorithm: 'HS256'
@@ -102,16 +102,16 @@ const authentication = ({
     const accessTokenOptions = {
       payload,
       issuer,
-      secret: accessToken.secret,
-      expiresIn: accessToken.expiresIn,
-      algorithm: accessToken.algorithm
+      secret: accessOpts.secret,
+      expiresIn: accessOpts.expiresIn,
+      algorithm: accessOpts.algorithm
     };
     const refreshTokenOptions = {
       payload,
       issuer,
-      secret: refreshToken.secret,
-      expiresIn: refreshToken.expiresIn,
-      algorithm: refreshToken.algorithm
+      secret: refreshOpts.secret,
+      expiresIn: refreshOpts.expiresIn,
+      algorithm: refreshOpts.algorithm
     };
 
     return Promise

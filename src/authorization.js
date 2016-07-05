@@ -117,7 +117,6 @@ const authorization = ({
     // NOTE: This requires the existence of req[issuer] with a property called
     // "payload" that has "permissions". This should exist if the middleware
     // requireAccessToken was used before calling this function.
-    console.log(JSON.stringify(req[key]));
     const permission = req[key].payload.permissions[name];
 
     // If the token payload has a set of actions for this app's name and those
