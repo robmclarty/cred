@@ -128,7 +128,7 @@ router.('/logout')
         token: revokedToken
       }))
       .catch(next);
-  })
+  });
 
 router.('/refresh')
   .post(cred.requireRefreshToken, (req, res, next) => {
