@@ -3,7 +3,4 @@
 const authentication = require('../src/authentication');
 const authorization = require('../src/authorization');
 
-Object.assign(exports, {
-  authentication,
-  authorization
-});
+Object.assign(exports, authentication, authorization);

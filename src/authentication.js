@@ -10,18 +10,18 @@ const TOKEN_CACHE_LABEL = 'authentik:token';
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
 
 const authentication = ({
-  key = 'cred',
-  issuer = 'cred-issuer',
-  cache = 'memory',
+  key,
+  issuer,
+  cache,
   accessOpts = {
-    secret: 'access-secret',
-    expiresIn: '24 hours',
-    algorithm: 'HS256'
+    secret,
+    expiresIn,
+    algorithm
   },
   refreshOpts = {
-    secret: 'refresh-secret',
-    expiresIn: '7 days',
-    algorithm: 'HS256'
+    secret,
+    expiresIn,
+    algorithm
   }
 }) => {
   // A set of functions to be used for verifying authentication and generating
