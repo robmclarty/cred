@@ -24,7 +24,8 @@ include in all tokens created using that strategy.
 So, for example, if you wanted to implement a simple username + password strat,
 you could initialize the module like this (this is assuming you have, in this
 case, a [mongoose](http://mongoosejs.com/) model called 'User' which has a
-function called `verifyPassword`):
+function called `verifyPassword` which returns a boolean if the credentials
+matched or not):
 
 ```javascript
 const gotCred = require('cred');
@@ -57,10 +58,16 @@ cred.use('basic', req => {
 });
 ```
 
-You can `throw` an error in this function as it is part of another Promise
-chain which will handle outputting an error message with a 401 error code as
-part of the Express middleware. As a result, you also don't need to `catch`
-those error right here ;)
+The way credentials are verified is totally up to you. Throw if the credentials
+don't match, and return an object for the token payload if they do. That's all
+this function needs to do.
+
+You can `throw` an error message in this function as it is part of another
+Promise chain inside *cred* which will handle outputting an error message with a
+401 error code as part of and Express middleware. As a result, you also don't
+need to `catch` those error right here ;) But you could override cred's
+behaviour in your own catch if you prefer and respond to the error in your own
+way.
 
 Later, you can use the `cred.authenticate(stratName)` as a middleware in your
 routes to require the above credentials before proceeding to the next middleware
@@ -91,7 +98,7 @@ in your front-end apps to be re-used each time they need to make a request to
 your server. This is a lot  simpler than using something like Oauth, or managing
 a session store and opening yourself up to the problems associated with cookies
 (for example). To read more about JWTs, check out the `/docs` folder, especially
-[What is a JSON Web Token](./docs/jwt.md).
+[What is a JSON Web Token?](./docs/jwt.md).
 
 The two tokens that get generated are 1) an "access" token, and 2) a "refresh"
 token. The difference is, an "access" token is used for regularly "doing stuff"
@@ -104,16 +111,16 @@ invalid without doing anything else. But users have 1 week to "refresh" their
 token with a new one. When this is done, the refresh token is checked against an
 internal  whitelist store which tracks all currently active (and valid) refresh
 tokens. This way you have control over all refresh tokens issued and can revoke
-them as needed to prevent someone from getting new access tokens. When a use
+them as needed to prevent someone from getting new access tokens. When a user
 logs out, you simply need to revoke their refresh token (their access token will
-become invalid on its own). At this point the user will be required to provide
-authentic credentials once again through the login process in order to get new
-tokens.
+become invalid on its own). If the user's refresh token was revoked, or if it
+expired on its own, the user will be required to provide authentic credentials
+once again through the login process in order to get new tokens.
 
 You can revoke and refresh a token like this:
 
 ```javascript
-router.('/tokens')
+router.('/logout')
   .delete(cred.requireRefreshToken, (req, res, next) => {
     cred.revoke(req.cred.token)
       .then(revokedToken => res.json({
@@ -122,7 +129,9 @@ router.('/tokens')
       }))
       .catch(next);
   })
-  .put(cred.requireRefreshToken, (req, res, next) => {
+
+router.('/refresh')
+  .post(cred.requireRefreshToken, (req, res, next) => {
     cred.refresh(req.cred.token)
       .then(freshTokens => res.json({
         message: 'Tokens refreshed.',
@@ -146,7 +155,22 @@ continue accessing resources.
 `cred.requireRefreshToken` and returns the revoked token. You can return that if
 you want, or do nothing.
 
+Last, you can setup any of your authorized routes to require a valid access
+token like this:
+
+```javascript
+router.('/resources')
+  .all(cred.requireAccessToken)
+  .post(postStuff)
+  .put(putStuff)
+  .delete(deleteStuff)
+  .get(getStuff);
+```
+
 Full API docs can be found in `/docs` in [API Docs](./docs/api.md).
+
+For more advanced usage with specific "roles" or "permissions", check out the
+[Using Permissions](permissions.md) doc.
 
 ## License
 
