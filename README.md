@@ -142,10 +142,10 @@ router.route('/refresh')
 ```
 
 When using either `cred.requireRefreshToken` or `cred.requireAccessToken` as
-middleware, these will attach a single `token` attribute to the "cred" attribute
+middleware, these will attach a single `token` attribute to the `cred` attribute
 on the request object being either the refresh token or access token
 respectively. This is different from the `cred.authenticate()` method which
-attached *both* tokens as a `tokens` attribute.
+attaches *both* tokens as a `tokens` attribute.
 
 `cred.refresh` returns an object containing two attributes: 1) `accessToken` and
 2) `refreshToken`. You can return those to the user/front-end for use to
