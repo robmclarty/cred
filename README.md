@@ -120,7 +120,7 @@ once again through the login process in order to get new tokens.
 You can revoke and refresh a token like this:
 
 ```javascript
-router.('/logout')
+router.route('/logout')
   .delete(cred.requireRefreshToken, (req, res, next) => {
     cred.revoke(req.cred.token)
       .then(revokedToken => res.json({
@@ -130,7 +130,7 @@ router.('/logout')
       .catch(next);
   });
 
-router.('/refresh')
+router.route('/refresh')
   .post(cred.requireRefreshToken, (req, res, next) => {
     cred.refresh(req.cred.token)
       .then(freshTokens => res.json({
@@ -159,7 +159,7 @@ Last, you can setup any of your authorized routes to require a valid access
 token like this:
 
 ```javascript
-router.('/resources')
+router.route('/resources')
   .all(cred.requireAccessToken)
   .post(postStuff)
   .put(putStuff)
