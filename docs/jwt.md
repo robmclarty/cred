@@ -1,4 +1,4 @@
-# What is JWT
+# What is a JSON Web Token?
 
 by Rob McLarty
 last updated Sep 2015
