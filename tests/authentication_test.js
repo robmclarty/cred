@@ -1,0 +1,1 @@
+const tape = require('tape');

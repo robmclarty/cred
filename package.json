@@ -35,12 +35,14 @@
   "devDependencies": {
     "gulp": "github:gulpjs/gulp#4.0",
     "require-dir": "0.3.0",
+    "tape": "4.6.0",
     "yargs": "4.7.1"
   },
   "engines": {
     "node": ">= 6.0.0"
   },
   "scripts": {
-    "start": "node examples/basic.js"
+    "start": "node examples/basic.js",
+    "test": "./node_modules/tape/bin/tape ./tests/**/*_test.js"
   }
 }
