@@ -40,7 +40,9 @@ const cred = ({
     key,
     issuer,
     resource,
-    cache
+    cache,
+    accessOpts,
+    refreshOpts
   }
 
   const authorization = {
