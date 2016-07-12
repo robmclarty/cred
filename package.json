@@ -1,8 +1,8 @@
 {
   "name": "cred",
-  "version": "0.4.1",
-  "description": "JWT authentication & authorization for distributed express APIs.",
-  "main": "dist/index.js",
+  "version": "0.4.2",
+  "description": "JWT authentication and authorization for distributed express APIs.",
+  "main": "src/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
   "repository": {
