@@ -15,6 +15,12 @@ become the payload of the JWTs returned by the system.
 
 ## Usage
 
+See [cred-auth-manager](https://github.com/robmclarty/cred-auth-manager) for a
+reference implementation of cred. It is an example app that can act as a central
+authentication hub for a potentially distributed system.
+
+---
+
 The two most important things you need to do to use this is *initialize* the
 module, and then provide it with at least one authentication "strategy" (a
 function you define which determines if someone provided the right credentials)
