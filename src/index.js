@@ -32,8 +32,12 @@ const cred = ({
     ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512'].includes(opts.algorithm) ?
       (isPrivate ? opts.privateKey : opts.publicKey) :
       opts.secret
-  const requireAccessToken = requireValidToken(key, secretFromOpts(accessOpts), issuer, accessOpts.algorithm)
-  const requireRefreshToken = requireValidToken(key, secretFromOpts(refreshOpts), issuer, refreshOpts.algorithm)
+  const requireAccessToken = requireValidToken(
+    key,
+    secretFromOpts(accessOpts),
+    issuer,
+    accessOpts.algorithm
+  )
   const requirePermission = requireResourcePermission(key, resource)
 
   const settings = {
@@ -47,13 +51,12 @@ const cred = ({
 
   const authorization = {
     requireAccessToken,
-    requireRefreshToken,
     requirePermission,
     tokenFromReq,
     createError
   }
 
-  const authentication = () => {
+  const createAuthentication = () => {
     const auth = initAuthentication({
       key,
       issuer,
@@ -69,12 +72,24 @@ const cred = ({
         algorithm: refreshOpts.algorithm
       }
     })
+    const requireRefreshToken = requireValidToken(
+      key,
+      secretFromOpts(refreshOpts),
+      issuer,
+      refreshOpts.algorithm,
+      auth.verify
+    )
+
+    // Add requireRefreshToken() to authorization in the case that both
+    // authorization + authentication are used.
+    Object.assign(authorization, { requireRefreshToken })
 
     return {
       use: auth.use,
       unuse: auth.unuse,
       authenticate: auth.authenticate,
       verifyActive: auth.verifyActive,
+      verify: auth.verify,
       getCache: auth.getCache,
       revoke: auth.revoke,
       register: auth.register,
@@ -84,7 +99,12 @@ const cred = ({
 
   if (authorizeOnly) return Object.assign(settings, authorization)
 
-  return Object.assign(settings, authentication(), authorization)
+  // Must createAuthentication() before assigning final return object so that
+  // the authorization object gets updated with requireRefreshToken() which
+  // depends on the authentication instance.
+  const authentication = createAuthentication()
+
+  return Object.assign(settings, authentication, authorization)
 }
 
 module.exports = cred;

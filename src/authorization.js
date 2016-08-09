@@ -29,22 +29,19 @@ const tokenFromReq = req => {
 
 // Return a middleware that verifies a valid token and attaches its payload to
 // the request on `key` for use in other functions down the middleware chain.
-const requireValidToken = (key, secret, issuer, algorithm) => (req, res, next) => {
+const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res, next) => {
   const token = tokenFromReq(req)
   const options = { issuer, algorithms: [algorithm] }
   const assignPayloadToReq = payload => {
     req[key] = { payload, token }
   }
 
-  if (!token) return next(createError(401, 'No token provided.'))
+  if (!token || !verify) return next(createError(400, 'No token provided.'))
 
-  jwt.verify(token, secret, options, (err, payload) => {
-    if (err || !payload || !payload.jti)
-      return next(createError(401, `Problem authenticating token: ${ err }`))
-
-    assignPayloadToReq(payload)
-    next()
-  })
+  verify(token, secret, options)
+    .then(assignPayloadToReq)
+    .then(next)
+    .catch(err => next(createError(401, `Problem authenticating token: ${ err }`)))
 }
 
 // If at least one of the permittedActions exists in requiredActions, then consider

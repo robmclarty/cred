@@ -6,12 +6,14 @@ const lru = require('lru-cache');
 const parambulator = require('parambulator');
 const { setRedisClient } = require('./whitelist');
 
-const TOKEN_CACHE_LABEL = 'authentik:token';
+const TOKEN_CACHE_LABEL = 'cred:token';
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
 const SUBJECT = {
   ACCESS: 'access',
   REFRESH: 'refresh'
 }
+
+const cacheKeyFor = id => `${ TOKEN_CACHE_LABEL }:${ id }`
 
 const authentication = ({
   key,
@@ -32,6 +34,7 @@ const authentication = ({
   // token payloads.
   const strategies = {};
 
+  // TODO: Implement persistent storage (e.g., using Redis) as an alternative.
   const activeTokens = lru({
     max: 1000,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
@@ -185,7 +188,7 @@ const authentication = ({
     if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const cacheKey = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
+    const cacheKey = cacheKeyFor(payload.jti);
     const nowInSeconds = Math.floor(Date.now() / 1000);
     const maxAge = payload.exp - nowInSeconds;
 
@@ -210,7 +213,7 @@ const authentication = ({
     if (!payload.jti) reject('No Token ID.');
     if (!cache) reject('No cache defined.');
 
-    const cacheKey = `${ TOKEN_CACHE_LABEL }:${ payload.jti }`;
+    const cacheKey = cacheKeyFor(payload.jti)
 
     switch(cache) {
     case 'redis':
@@ -229,22 +232,40 @@ const authentication = ({
     const payload = jwt.decode(token);
 
     if (!payload.jti) reject('No Token ID.');
-    if (!cache) reject('No cache defined.');
+    if (!cache || !activeTokens) reject('No cache defined.');
+
+    const cacheKey = cacheKeyFor(payload.jti)
 
     switch(cache) {
     case 'redis':
       activeTokens.client.get(cacheKey, (err, reply) => {
         if (err || reply === null)
-          reject('Token is no longer active.');
+          reject('Token has expired.');
       });
       break;
     case 'memory': default:
-      if (activeTokens.get(cacheKey) === 'undefined')
-        reject('Token is no longer active.');
+      if (!activeTokens.get(cacheKey))
+        reject('Token has expired.');
     }
 
-    resolve(token);
+    resolve(payload);
   });
+
+  // Verify that the token is valid and that, if it is a refresh token, it has
+  // not yet expired.
+  const verify = (token, secret, options) => new Promise((resolve, reject) => {
+    jwt.verify(token, secret, options, (err, payload) => {
+      if (err || !payload || !payload.jti)
+        return reject(err)
+
+      if (payload.sub && payload.sub === SUBJECT.REFRESH)
+        return verifyActive(token)
+          .then(() => resolve(payload))
+          .catch(err => reject(err))
+
+      resolve(payload)
+    })
+  })
 
   const getCache = () => {
     switch(cache) {
@@ -302,6 +323,7 @@ const authentication = ({
     unuse,
     authenticate,
     verifyActive,
+    verify,
     getCache,
     revoke,
     register,
