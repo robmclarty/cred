@@ -31,6 +31,7 @@ const tokenFromReq = req => {
 // the request on `key` for use in other functions down the middleware chain.
 const requireValidToken = (key, secret, issuer, algorithm) => (req, res, next) => {
   const token = tokenFromReq(req)
+  console.log('token: ', token)
   const options = { issuer, algorithms: [algorithm] }
   const assignPayloadToReq = payload => {
     req[key] = { payload, token }

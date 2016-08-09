@@ -248,6 +248,7 @@ const authentication = ({
   const refresh = token => new Promise((resolve, reject) => {
     createAccessAndRefreshTokens(jwt.decode(token))
       .then(results => {
+        console.log('results: ', results)
         const { payload, tokens } = results;
 
         // Remove the old refresh token and register the newly created one.
