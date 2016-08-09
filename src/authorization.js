@@ -41,7 +41,7 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res,
   verify(token, secret, options)
     .then(assignPayloadToReq)
     .then(next)
-    .catch(err => next(createError(401, `Problem authenticating token: ${ err }`)))
+    .catch(err => next(createError(401, `Authentication failed: ${ err }`)))
 }
 
 // If at least one of the permittedActions exists in requiredActions, then consider
