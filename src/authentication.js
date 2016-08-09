@@ -8,6 +8,10 @@ const { setRedisClient } = require('./whitelist');
 
 const TOKEN_CACHE_LABEL = 'authentik:token';
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
+const SUBJECT = {
+  ACCESS: 'access',
+  REFRESH: 'refresh'
+}
 
 const authentication = ({
   key,
@@ -81,13 +85,19 @@ const authentication = ({
     secret = '',
     algorithm = 'HS256',
     expiresIn = 0,
+    subject = ''
   }) => new Promise((resolve, reject) => {
     const options = {
       jwtid: shortid.generate(), // jti claim
       issuer, // corresponds to verify() check
       algorithm,
-      expiresIn
+      expiresIn,
+      subject
     };
+
+    // If this is a refresh token, don't include the permissions (not needed).
+    if (subject === SUBJECT.REFRESH && payload && payload.permissions)
+      delete payload.permissions
 
     jwt.sign(excludeClaims(payload), secret, options, (err, token) => {
       if (err || !token) reject(`Failed to create token: ${ err }`);
@@ -104,14 +114,16 @@ const authentication = ({
       issuer,
       secret: accessOpts.secret,
       expiresIn: accessOpts.expiresIn,
-      algorithm: accessOpts.algorithm
+      algorithm: accessOpts.algorithm,
+      subject: SUBJECT.ACCESS
     };
     const refreshTokenOptions = {
       payload,
       issuer,
       secret: refreshOpts.secret,
       expiresIn: refreshOpts.expiresIn,
-      algorithm: refreshOpts.algorithm
+      algorithm: refreshOpts.algorithm,
+      subject: SUBJECT.REFRESH
     };
 
     return Promise
@@ -248,7 +260,6 @@ const authentication = ({
   const refresh = token => new Promise((resolve, reject) => {
     createAccessAndRefreshTokens(jwt.decode(token))
       .then(results => {
-        console.log('results: ', results)
         const { payload, tokens } = results;
 
         // Remove the old refresh token and register the newly created one.
