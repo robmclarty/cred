@@ -16,6 +16,6 @@ const setRedisClient = url => {
   };
 };
 
-Object.assign(exports, {
+module.exports = {
   setRedisClient
-});
+};

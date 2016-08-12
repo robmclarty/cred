@@ -36,7 +36,19 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res,
     req[key] = { payload, token }
   }
 
-  if (!token || !verify) return next(createError(400, 'No token provided.'))
+  if (!token) return next(createError(400, 'No token provided.'))
+
+  // If verify is not defined, verify the token directly.
+  // NOTE: This will not verify if the token is in the whitelist cache as this
+  // method is not connected to the cred instance. To do that, pass in a verify
+  // function that is aware of the cred instance (and its cache).
+  if (!verify) return jwt.verify(token, secret, options, (err, payload) => {
+    if (err || !payload || !payload.jti) return next(err)
+
+    assignPayloadToReq(payload)
+
+    return next()
+  })
 
   verify(token, secret, options)
     .then(assignPayloadToReq)
@@ -51,8 +63,8 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res,
 const hasPermission = (requiredActions, permittedActions) => {
   if (!permittedActions) return false;
 
-  // If requiredActions is an Array, loop through each element. If any of
-  // the requiredActions exist in permittedActions, permission is given.
+  // If requiredActions is an Array, loop through each element. If any of the
+  // requiredActions exist in permittedActions, permission is given.
   if (Array.isArray(requiredActions)) {
     return requiredActions.reduce((hasRequiredAction, action) => {
       return permittedActions.indexOf(action) >= 0 ?
@@ -96,23 +108,53 @@ const hasPermission = (requiredActions, permittedActions) => {
 //   "iss": "cred-issuer"
 // }
 const requireResourcePermission = (key, resourceName) => requiredActions => (req, res, next) => {
+  // Expect `req[key]` to exist with a payload attribute (would have been
+  // created by requireValidToken()).
+  if (!req[key])
+    return next(createError(400, `Cred auth attribute '${ key }' missing in request`))
+  if (!req[key].payload)
+    return next(createError(400, 'Cred auth attribute has no payload'))
+
+  // If this user had an attribute `isAdmin` which is `true`, override
+  // permissions and proceed to next middleware.
+  if (req[key].payload.isAdmin) return next()
+
+  // If this use is not an admin, then check for resource-speicifc permissions.
+  if (!req[key].payload.permissions)
+    return next(createError(400, 'Payload has no permissions'))
+  if (!req[key].payload.permissions[resourceName])
+    return next(createError(400, `Missing permissions for resource '${ resourceName }'`))
+
   // NOTE: This requires the existence of req[key] with a property called
   // "payload" that has "permissions". This should exist if the middleware
   // requireValidToken was used before calling this function.
-  // TODO: Check for the pressence of req[key] and handle errors if it's missing.
   const permission = req[key].payload.permissions[resourceName]
 
   // If the token payload has a set of actions for this app's name and those
   // actions include at least one of the requiredActions, proceed to next().
   if (!permission || !hasPermission(requiredActions, permission.actions))
-    return next(createError(401, 'Insufficient permissions.'))
+    return next(createError(401, 'Insufficient permissions'))
 
   next()
 }
 
-Object.assign(exports, {
+const requirePropIn = key => (name, value) => (req, res, next) => {
+  // Expect `req[key]` to exist with a payload attribute (would have been
+  // created by requireValidToken()).
+  if (!req[key])
+    return next(createError(400, `Cred auth attribute '${ key }' missing in request`))
+  if (!req[key].payload)
+    return next(createError(400, 'Cred auth attribute has no payload'))
+  if (!req[key].payload[name] || req[key].payload[name] !== value)
+    return next(createError(401, `Insufficient priviledges`))
+
+  next()
+}
+
+module.exports = {
   tokenFromReq,
   createError,
   requireValidToken,
-  requireResourcePermission
-})
+  requireResourcePermission,
+  requirePropIn
+}

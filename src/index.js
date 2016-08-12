@@ -4,6 +4,7 @@ const initAuthentication = require('./authentication')
 const {
   requireValidToken,
   requireResourcePermission,
+  requirePropIn,
   createError,
   tokenFromReq
 } = require('./authorization')
@@ -39,6 +40,7 @@ const cred = ({
     accessOpts.algorithm
   )
   const requirePermission = requireResourcePermission(key, resource)
+  const requireProp = requirePropIn(key)
 
   const settings = {
     key,
@@ -52,6 +54,7 @@ const cred = ({
   const authorization = {
     requireAccessToken,
     requirePermission,
+    requireProp,
     tokenFromReq,
     createError
   }
@@ -93,7 +96,10 @@ const cred = ({
       getCache: auth.getCache,
       revoke: auth.revoke,
       register: auth.register,
-      refresh: auth.refresh
+      refresh: auth.refresh,
+      createToken: auth.createToken,
+      createAccessToken: auth.createAccessToken,
+      createRefreshToken: auth.createRefreshToken
     }
   }
 

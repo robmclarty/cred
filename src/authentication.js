@@ -109,39 +109,37 @@ const authentication = ({
     });
   });
 
+  const createAccessToken = payload => createToken({
+    payload,
+    issuer,
+    secret: accessOpts.secret,
+    expiresIn: accessOpts.expiresIn,
+    algorithm: accessOpts.algorithm,
+    subject: SUBJECT.ACCESS
+  })
+
+  const createRefreshToken = payload => createToken({
+    payload,
+    issuer,
+    secret: refreshOpts.secret,
+    expiresIn: refreshOpts.expiresIn,
+    algorithm: refreshOpts.algorithm,
+    subject: SUBJECT.REFRESH
+  })
+
   // Transform a payload into an object containing two tokens: `accessToken` and
   // `refreshToken`.
-  const createAccessAndRefreshTokens = payload => {
-    const accessTokenOptions = {
-      payload,
-      issuer,
-      secret: accessOpts.secret,
-      expiresIn: accessOpts.expiresIn,
-      algorithm: accessOpts.algorithm,
-      subject: SUBJECT.ACCESS
-    };
-    const refreshTokenOptions = {
-      payload,
-      issuer,
-      secret: refreshOpts.secret,
-      expiresIn: refreshOpts.expiresIn,
-      algorithm: refreshOpts.algorithm,
-      subject: SUBJECT.REFRESH
-    };
-
-    return Promise
-      .all([
-        createToken(accessTokenOptions),
-        createToken(refreshTokenOptions)
-      ])
-      .then(tokens => ({
-        payload,
-        tokens: {
-          accessToken: tokens[0],
-          refreshToken: tokens[1]
-        }
-      }));
-  };
+  const createTokens = payload => Promise.all([
+    createAccessToken(payload),
+    createRefreshToken(payload)
+  ])
+  .then(tokens => ({
+    payload,
+    tokens: {
+      accessToken: tokens[0],
+      refreshToken: tokens[1]
+    }
+  }))
 
   // Ensure that all payloads conform to the following rules:
   // 1. must contain an attribute called "permissions" which is an object
@@ -279,7 +277,7 @@ const authentication = ({
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
   const refresh = token => new Promise((resolve, reject) => {
-    createAccessAndRefreshTokens(jwt.decode(token))
+    createTokens(jwt.decode(token))
       .then(results => {
         const { payload, tokens } = results;
 
@@ -302,7 +300,7 @@ const authentication = ({
 
     strategies[name](req)
       .then(validatePayload)
-      .then(createAccessAndRefreshTokens)
+      .then(createTokens)
       .then(results => {
         const { payload, tokens } = results;
 
@@ -327,7 +325,10 @@ const authentication = ({
     getCache,
     revoke,
     register,
-    refresh
+    refresh,
+    createToken,
+    createAccessToken,
+    createRefreshToken
   };
 };
 
