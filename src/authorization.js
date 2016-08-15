@@ -111,7 +111,7 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key])
-    return next(createError(400, `Cred auth attribute '${ key }' missing in request`))
+    return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
   if (!req[key].payload)
     return next(createError(400, 'Cred auth attribute has no payload'))
 
@@ -121,9 +121,9 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
 
   // If this use is not an admin, then check for resource-speicifc permissions.
   if (!req[key].payload.permissions)
-    return next(createError(400, 'Payload has no permissions'))
+    return next(createError(401, 'Payload has no permissions'))
   if (!req[key].payload.permissions[resourceName])
-    return next(createError(400, `Missing permissions for resource '${ resourceName }'`))
+    return next(createError(401, `Missing permissions for resource "${ resourceName }"`))
 
   // NOTE: This requires the existence of req[key] with a property called
   // "payload" that has "permissions". This should exist if the middleware
@@ -142,7 +142,7 @@ const requirePropIn = key => (name, value) => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key])
-    return next(createError(400, `Cred auth attribute '${ key }' missing in request`))
+    return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
   if (!req[key].payload)
     return next(createError(400, 'Cred auth attribute has no payload'))
   if (!req[key].payload[name] || req[key].payload[name] !== value)
