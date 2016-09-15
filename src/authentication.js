@@ -238,12 +238,12 @@ const authentication = ({
     case 'redis':
       activeTokens.client.get(cacheKey, (err, reply) => {
         if (err || reply === null)
-          reject('Token has expired.');
+          reject('Token has been revoked.');
       });
       break;
     case 'memory': default:
       if (!activeTokens.get(cacheKey))
-        reject('Token has expired.');
+        reject('Token has been revoked.');
     }
 
     resolve(payload);

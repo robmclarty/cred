@@ -114,16 +114,10 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
     return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
   if (!req[key].payload)
     return next(createError(400, 'Cred auth attribute has no payload'))
-
-  // If this user had an attribute `isAdmin` which is `true`, override
-  // permissions and proceed to next middleware.
-  if (req[key].payload.isAdmin) return next()
-
-  // If this use is not an admin, then check for resource-speicifc permissions.
   if (!req[key].payload.permissions)
     return next(createError(401, 'Payload has no permissions'))
   if (!req[key].payload.permissions[resourceName])
-    return next(createError(401, `Missing permissions for resource "${ resourceName }"`))
+    return next(createError(401, `No permissions for resource "${ resourceName }"`))
 
   // NOTE: This requires the existence of req[key] with a property called
   // "payload" that has "permissions". This should exist if the middleware
