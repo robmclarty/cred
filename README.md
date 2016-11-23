@@ -176,7 +176,7 @@ router.route('/resources')
 Full API docs can be found in `/docs` in [API Docs](./docs/api.md).
 
 For more advanced usage with specific "roles" or "permissions", check out the
-[Using Permissions](permissions.md) doc.
+[Using Permissions](./docs/permissions.md) doc.
 
 ## License
 
