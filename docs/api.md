@@ -81,7 +81,7 @@ if the token can still be considered "active", or if it is "revoked".
 ### `verify`
 
 Verify that the token is a valid JSON Web Token, that it is a refresh token, and
-that it has not yet expired.
+that it has not yet expired. Returns `true` or `false`.
 
 ### `getCache`
 
