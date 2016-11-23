@@ -80,10 +80,18 @@ and specific labels. Now, rather than simply having the "user" permission,
 this user can specifically read and write profile data, send messages, and upload
 and download files. This extra detail can be used to control permissions
 differently. So, for example, a user could be assigned permission to read
-profiles, but not write them, while also being able to download files as,
+profiles, but not write them, while also being able to download files,
 but perhaps not have the ability to upload them (and change the data).
 The possibilities are up to you. The system if very flexible.
 
 **NOTE**: The only caveat is that the resource server must enforce the actions
 that you define. Any list of actions can be associated with an app,  but it is
 up to the resource server to do something about it.
+
+For example, you might want to use `cred.requirePermission()` as an Express
+middleware to require the presence of a certain permissible action on an
+endpoint in your app (see the [Cred API](./api.md) for more details). But this
+isn't the only way you could use these values. You could write your own custom
+logic for determining if a user's token has authorized permissions your app
+requires. It doesn't necessarily have to be an Express app. It doesn't have to
+even be Javascript!
