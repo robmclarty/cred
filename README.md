@@ -1,11 +1,11 @@
 # Got Cred?
 
-Cred is a simpler authentication and authorization middleware for express apps
+Cred is a flexible authentication and authorization middleware for express apps
 which uses JSON Web Tokens. It is meant to be unobtrusive and let you decide
 where data is stored, how cred(entials) are determined to be valid, and what the
 structure of the JWT's payload looks like.
 
-All you need to do is give cred a function which takes parameters from the
+All you need to do is give Cred a function which takes parameters from the
 request's body, validates them, and then returns an object literal which will
 become the payload of the JWTs returned by the system.
 
@@ -16,8 +16,9 @@ become the payload of the JWTs returned by the system.
 ## Usage
 
 See [cred-auth-manager](https://github.com/robmclarty/cred-auth-manager) for a
-reference implementation of cred. It is an example app that can act as a central
-authentication hub for a potentially distributed system.
+non-trivial reference implementation of Cred. It is an example app that can act
+as a central authentication hub for an optionally distributed system. You can
+use it out of the box directly, modify it, or simply refer to it as an example.
 
 ---
 
@@ -64,15 +65,15 @@ cred.use('basic', req => {
 });
 ```
 
-The way credentials are verified is totally up to you. Throw if the credentials
+The way credentials are verified is totally up to you. Throw, if the credentials
 don't match, and return an object for the token payload if they do. That's all
 this function needs to do.
 
 You can `throw` an error message in this function as it is part of another
-Promise chain inside *cred* which will handle outputting an error message with a
-401 error code as part of and Express middleware. As a result, you also don't
-need to `catch` those error right here ;) But you could override cred's
-behaviour in your own catch if you prefer and respond to the error in your own
+Promise chain inside Cred which will handle outputting an error message with a
+401 error code as part of an Express middleware. As a result, you also don't
+need to `catch` those error right here ;) But you could override Cred's
+behaviour in your own catch if you prefer, and respond to the error in your own
 way.
 
 Later, you can use the `cred.authenticate(stratName)` as a middleware in your
@@ -93,13 +94,13 @@ router.route('/login')
   });
 ```
 
-What happens when you use the above middleware is that *cred* will add an
+What happens when you use the above middleware is that Cred will add an
 attribute to the Express request object called "cred" (you can override this
 with a different name if you like) which will contain two new JSON Web Tokens
 using the payload you defined in your strat.
 
 These tokens can then be used to gain authorization to other parts of your app
-which can be set up to only  accept valid JWTs. These tokens can also be stored
+which can be set up to only accept valid JWTs. These tokens can also be stored
 in your front-end apps to be re-used each time they need to make a request to
 your server. This is a lot  simpler than using something like Oauth, or managing
 a session store and opening yourself up to the problems associated with cookies
@@ -115,7 +116,7 @@ token is longer lived (again, up to you, but the default is 1 week). This
 ensures that any access token that is issued will "die on its own" and become
 invalid without doing anything else. But users have 1 week to "refresh" their
 token with a new one. When this is done, the refresh token is checked against an
-internal  whitelist store which tracks all currently active (and valid) refresh
+internal whitelist store which tracks all currently active (and valid) refresh
 tokens. This way you have control over all refresh tokens issued and can revoke
 them as needed to prevent someone from getting new access tokens. When a user
 logs out, you simply need to revoke their refresh token (their access token will

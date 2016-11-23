@@ -1,4 +1,4 @@
-# User Permissions
+# Using Permissions
 
 Users must create a valid JWT in order to access resources on your server(s).
 But the token alone doesn't enable the user to do everything per se. If your
