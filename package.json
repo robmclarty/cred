@@ -24,7 +24,7 @@
     "security"
   ],
   "dependencies": {
-    "jsonwebtoken": "7.1.7",
+    "jsonwebtoken": "7.2.1",
     "lru-cache": "4.0.1",
     "parambulator": "1.5.2",
     "redis": "2.6.0-2",
