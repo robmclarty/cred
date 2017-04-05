@@ -36,7 +36,7 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res,
     req[key] = { payload, token }
   }
 
-  if (!token) return next(createError(400, 'No token provided.'))
+  if (!token) return next(createError(401, 'No token provided.'))
 
   // If verify is not defined, verify the token directly.
   // NOTE: This will not verify if the token is in the whitelist cache as this
