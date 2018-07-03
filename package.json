@@ -1,6 +1,6 @@
 {
   "name": "cred",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "description": "JWT authentication and authorization for distributed express APIs.",
   "main": "src/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
