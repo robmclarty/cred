@@ -1,13 +1,13 @@
-'use strict';
+'use strict'
 
-const jwt = require('jsonwebtoken');
-const shortid = require('shortid');
-const lru = require('lru-cache');
-const parambulator = require('parambulator');
-const { setRedisClient } = require('./whitelist');
+const jwt = require('jsonwebtoken')
+const shortid = require('shortid')
+const lru = require('lru-cache')
+const parambulator = require('parambulator')
+const { setRedisClient } = require('./whitelist')
 
-const TOKEN_CACHE_LABEL = 'cred:token';
-const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat'];
+const TOKEN_CACHE_LABEL = 'cred:token'
+const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat']
 const SUBJECT = {
   ACCESS: 'access',
   REFRESH: 'refresh'
@@ -32,38 +32,38 @@ const authentication = ({
 }) => {
   // A set of functions to be used for verifying authentication and generating
   // token payloads.
-  const strategies = {};
+  const strategies = {}
 
   // TODO: Implement persistent storage (e.g., using Redis) as an alternative.
   const activeTokens = lru({
     max: 1000,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
-  });
+  })
 
   // Stores an authentication strategy (a function) which is defined by the user
   // and should return an object which will be passed into the tokenPayload
   // function.
   const use = (name, strategy) => {
-    if (!name) throw new Error('Authentication strategies must have a name');
-    if (!strategy) throw new Error('You must define a strategy');
+    if (!name) throw new Error('Authentication strategies must have a name')
+    if (!strategy) throw new Error('You must define a strategy')
 
-    strategies[name] = strategy;
+    strategies[name] = strategy
 
-    return strategies;
+    return strategies
   };
 
   const unuse = name => {
-    delete strategies[name];
+    delete strategies[name]
 
-    return strategies;
+    return strategies
   };
 
   const createError = (status, msg) => {
-    const err = new Error(msg);
+    const err = new Error(msg)
 
-    err.status = status;
+    err.status = status
 
-    return err;
+    return err
   };
 
   // Returns a payload with the standard JWT claims stripped out which are used
@@ -74,9 +74,9 @@ const authentication = ({
     return Object.keys(payload).reduce((strippedPayload, jwtKey) => {
       return !EXCLUDED_JWT_CLAIMS.includes(jwtKey) ?
         Object.assign(strippedPayload, { [jwtKey]: payload[jwtKey] }) :
-        strippedPayload;
-    }, {});
-  };
+        strippedPayload
+    }, {})
+  }
 
   // Create a new token with the provided payload and return the generated token.
   // Merge user-defined payload with some specific token claims (e.g., jti).
@@ -96,18 +96,18 @@ const authentication = ({
       algorithm,
       expiresIn,
       subject
-    };
+    }
 
     // If this is a refresh token, don't include the permissions (not needed).
     if (subject === SUBJECT.REFRESH && payload && payload.permissions)
       delete payload.permissions
 
     jwt.sign(excludeClaims(payload), secret, options, (err, token) => {
-      if (err || !token) reject(`Failed to create token: ${ err }`);
+      if (err || !token) reject(`Failed to create token: ${ err }`)
 
-      resolve(token);
-    });
-  });
+      resolve(token)
+    })
+  })
 
   const createAccessToken = payload => createToken({
     payload,
@@ -166,87 +166,85 @@ const authentication = ({
           }
         }
       }
-    });
+    })
 
     return new Promise((resolve, reject) => {
       payloadCheck.validate(payload, err => {
-        if (err) reject(`Payload is not formatted properly: ${ err }`);
+        if (err) reject(`Payload is not formatted properly: ${ err }`)
 
-        resolve(payload);
-      });
-    });
-  };
+        resolve(payload)
+      })
+    })
+  }
 
   // Sets a token's id in the cache essentially "activating" it in a whitelist
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
   const register = token => new Promise((resolve, reject) => {
-    const payload = jwt.decode(token);
+    const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.');
-    if (!cache) reject('No cache defined.');
+    if (!payload.jti) reject('No Token ID.')
+    if (!cache) reject('No cache defined.')
 
-    const cacheKey = cacheKeyFor(payload.jti);
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-    const maxAge = payload.exp - nowInSeconds;
+    const cacheKey = cacheKeyFor(payload.jti)
+    const nowInSeconds = Math.floor(Date.now() / 1000)
+    const maxAge = payload.exp - nowInSeconds
 
     switch(cache) {
     case 'redis':
-      activeTokens.client.set(cacheKey, payload.jti);
-      activeTokens.client.expire(cacheKey, maxAge);
+      activeTokens.client.set(cacheKey, payload.jti)
+      activeTokens.client.expire(cacheKey, maxAge)
       break;
     case 'memory': default:
-      activeTokens.set(cacheKey, payload.jti, maxAge);
+      activeTokens.set(cacheKey, payload.jti, maxAge)
     }
 
-    resolve(token);
-  });
+    resolve(token)
+  })
 
   // Remove a token's id from the cache essentially "deactivating" it from the
   // whitelist of valid tokens. If an id is not present in this cache it is
   // considered "revoked" or "invalid".
   const revoke = token => new Promise((resolve, reject) => {
-    const payload = jwt.decode(token);
+    const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.');
-    if (!cache) reject('No cache defined.');
+    if (!payload.jti) reject('No Token ID.')
+    if (!cache) reject('No cache defined.')
 
     const cacheKey = cacheKeyFor(payload.jti)
 
     switch(cache) {
     case 'redis':
-      activeTokens.client.del(cacheKey);
+      activeTokens.client.del(cacheKey)
       break;
     case 'memory': default:
-      activeTokens.del(cacheKey);
+      activeTokens.del(cacheKey)
     }
 
-    resolve(token);
+    resolve(token)
   });
 
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
   const verifyActive = token => new Promise((resolve, reject) => {
-    const payload = jwt.decode(token);
+    const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.');
-    if (!cache || !activeTokens) reject('No cache defined.');
+    if (!payload.jti) reject('No Token ID.')
+    if (!cache || !activeTokens) reject('No cache defined.')
 
     const cacheKey = cacheKeyFor(payload.jti)
 
     switch(cache) {
     case 'redis':
       activeTokens.client.get(cacheKey, (err, reply) => {
-        if (err || reply === null)
-          reject('Token has been revoked.');
+        if (err || reply === null) reject('Token has been revoked.')
       });
       break;
     case 'memory': default:
-      if (!activeTokens.get(cacheKey))
-        reject('Token has been revoked.');
+      if (!activeTokens.get(cacheKey)) reject('Token has been revoked.')
     }
 
-    resolve(payload);
+    resolve(payload)
   });
 
   // Verify that the token is valid and that, if it is a refresh token, it has
@@ -270,7 +268,7 @@ const authentication = ({
     case 'redis':
       break;
     case 'memory': default:
-      return activeTokens.dump();
+      return activeTokens.dump()
     }
   };
 
@@ -279,42 +277,41 @@ const authentication = ({
   const refresh = token => new Promise((resolve, reject) => {
     createTokens(jwt.decode(token))
       .then(results => {
-        const { payload, tokens } = results;
+        const { payload, tokens } = results
 
         // Remove the old refresh token and register the newly created one.
         return Promise.all([
           tokens,
           revoke(token),
           register(tokens.refreshToken)
-        ]);
+        ])
       })
       .then(results => resolve(results[0])) // return tokens object
-      .catch(err => reject(`Problem refreshing tokens: ${ err }`));
-  });
+      .catch(err => reject(`Problem refreshing tokens: ${ err }`))
+  })
 
   // Given a particular strategy, return Express middleware for authenticating.
   // If authenticated, attach an object called "authentik" to the req object
   // containing JWTs and other meta data for authentik.
-  const authenticate = name => (req, res, next) => {
-    if (!strategies[name]) next(createError(500, `Strategy "${ name }" not defined.`));
+  const authenticate = name => async (req, res, next) => {
+    if (!strategies[name]) return next(createError(500, `Strategy "${ name }" not defined.`))
 
-    strategies[name](req)
-      .then(validatePayload)
-      .then(createTokens)
-      .then(results => {
-        const { payload, tokens } = results;
+    try {
+      const payload = await strategies[name](req)
+      const validPayload = await validatePayload(payload)
+      const tokens = await createTokens(validPayload)
 
-        req[key] = {
-          strategy: name,
-          payload,
-          tokens
-        };
+      req[key] = {
+        strategy: name,
+        payload: validPayload,
+        tokens
+      }
 
-        return register(tokens.refreshToken);
-      })
-      .then(() => next())
-      .catch(msg => next(createError(401, `Unauthorized: ${ msg }`)));
-  };
+      next()
+    } catch (err) {
+      next(createError(401, `Unauthorized: ${ err }`))
+    }
+  }
 
   return {
     use,
@@ -329,7 +326,7 @@ const authentication = ({
     createToken,
     createAccessToken,
     createRefreshToken
-  };
-};
+  }
+}
 
-module.exports = authentication;
+module.exports = authentication
