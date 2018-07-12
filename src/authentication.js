@@ -297,13 +297,13 @@ const authentication = ({
     if (!strategies[name]) return next(createError(500, `Strategy "${ name }" not defined.`))
 
     try {
-      const payload = await strategies[name](req)
-      const validPayload = await validatePayload(payload)
-      const tokens = await createTokens(validPayload)
+      const rawPayload = await strategies[name](req)
+      const validPayload = await validatePayload(rawPayload)
+      const { payload, tokens } = await createTokens(validPayload)
 
       req[key] = {
         strategy: name,
-        payload: validPayload,
+        payload,
         tokens
       }
 
