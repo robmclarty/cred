@@ -291,8 +291,8 @@ const authentication = ({
   })
 
   // Given a particular strategy, return Express middleware for authenticating.
-  // If authenticated, attach an object called "authentik" to the req object
-  // containing JWTs and other meta data for authentik.
+  // If authenticated, attach an object called `req[key]` (`cred` by default)
+  // to the req object containing JWTs and other meta data for cred.
   const authenticate = name => async (req, res, next) => {
     if (!strategies[name]) return next(createError(500, `Strategy "${ name }" not defined.`))
 
@@ -300,6 +300,9 @@ const authentication = ({
       const rawPayload = await strategies[name](req)
       const validPayload = await validatePayload(rawPayload)
       const { payload, tokens } = await createTokens(validPayload)
+
+      // Register new refresh token with whitelisted cache.
+      await register(tokens.refreshToken)
 
       req[key] = {
         strategy: name,

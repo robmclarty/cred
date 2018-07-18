@@ -61,6 +61,7 @@ const cred = ({
     }
   })
 
+  // TODO: verify token `sub` before trying anything else (must be "access")
   const requireAccessToken = requireValidToken(
     key,
     secretFromOpts(accessOpts),
@@ -68,6 +69,7 @@ const cred = ({
     accessOpts.algorithm
   )
 
+  // TODO: verify token `sub` before trying anything else (must be "refresh")
   const requireRefreshToken = requireValidToken(
     key,
     secretFromOpts(refreshOpts),
