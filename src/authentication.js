@@ -3,7 +3,6 @@
 const jwt = require('jsonwebtoken')
 const shortid = require('shortid')
 const lru = require('lru-cache')
-const parambulator = require('parambulator')
 const { setRedisClient } = require('./whitelist')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
@@ -141,42 +140,6 @@ const authentication = ({
       }
     }))
 
-  // Ensure that all payloads conform to the following rules:
-  // 1. must contain an attribute called "permissions" which is an object
-  // 2. may optionally contain any number of sub-attributes (to be used to
-  //    reference specific apps/services) as long as they are uniquely named
-  // 3. if a sub-attribute is present, it must contain an attribute called
-  //    "actions" which is an array of permitted actions for that app/service
-  // 4. actions must be strings which simply identify the permitted action
-  //
-  // Any other data can also be included along side permissions, or app-specific
-  // permission attributes could be added to each sub-attribute if desired. But
-  // the payload must at least conform to this minimum permissions format.
-  const validatePayload = payload => {
-    const payloadCheck = parambulator({
-      permissions: {
-        required$: true,
-
-        '*': {
-          actions: {
-            required$: true,
-            type$: 'array',
-
-            '*': { type$: 'string' }
-          }
-        }
-      }
-    })
-
-    return new Promise((resolve, reject) => {
-      payloadCheck.validate(payload, err => {
-        if (err) reject(`Payload is not formatted properly: ${ err }`)
-
-        resolve(payload)
-      })
-    })
-  }
-
   // Sets a token's id in the cache essentially "activating" it in a whitelist
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
@@ -298,8 +261,7 @@ const authentication = ({
 
     try {
       const rawPayload = await strategies[name](req)
-      const validPayload = await validatePayload(rawPayload)
-      const { payload, tokens } = await createTokens(validPayload)
+      const { payload, tokens } = await createTokens(rawPayload)
 
       // Register new refresh token with whitelisted cache.
       await register(tokens.refreshToken)
