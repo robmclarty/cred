@@ -7,7 +7,7 @@ const parambulator = require('parambulator')
 const { setRedisClient } = require('./whitelist')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
-const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'aud', 'nbf', 'jti', 'iat']
+const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'nbf', 'jti', 'iat']
 const SUBJECT = {
   ACCESS: 'access',
   REFRESH: 'refresh'
@@ -133,13 +133,13 @@ const authentication = ({
     createAccessToken(payload),
     createRefreshToken(payload)
   ])
-  .then(tokens => ({
-    payload,
-    tokens: {
-      accessToken: tokens[0],
-      refreshToken: tokens[1]
-    }
-  }))
+    .then(tokens => ({
+      payload,
+      tokens: {
+        accessToken: tokens[0],
+        refreshToken: tokens[1]
+      }
+    }))
 
   // Ensure that all payloads conform to the following rules:
   // 1. must contain an attribute called "permissions" which is an object
@@ -194,7 +194,7 @@ const authentication = ({
     case 'redis':
       activeTokens.client.set(cacheKey, payload.jti)
       activeTokens.client.expire(cacheKey, maxAge)
-      break;
+      break
     case 'memory': default:
       activeTokens.set(cacheKey, payload.jti, maxAge)
     }
@@ -216,13 +216,13 @@ const authentication = ({
     switch(cache) {
     case 'redis':
       activeTokens.client.del(cacheKey)
-      break;
+      break
     case 'memory': default:
       activeTokens.del(cacheKey)
     }
 
     resolve(token)
-  });
+  })
 
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
@@ -238,14 +238,14 @@ const authentication = ({
     case 'redis':
       activeTokens.client.get(cacheKey, (err, reply) => {
         if (err || reply === null) reject('Token has been revoked.')
-      });
-      break;
+      })
+      break
     case 'memory': default:
       if (!activeTokens.get(cacheKey)) reject('Token has been revoked.')
     }
 
     resolve(payload)
-  });
+  })
 
   // Verify that the token is valid and that, if it is a refresh token, it has
   // not yet expired.
@@ -270,7 +270,7 @@ const authentication = ({
     case 'memory': default:
       return activeTokens.dump()
     }
-  };
+  }
 
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
