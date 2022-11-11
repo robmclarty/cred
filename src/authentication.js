@@ -1,12 +1,12 @@
-'use strict'
-
 const jwt = require('jsonwebtoken')
-const shortid = require('shortid')
+const { nanoid } = require('nanoid')
 const lru = require('lru-cache')
 const { setRedisClient } = require('./whitelist')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
+
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'nbf', 'jti', 'iat']
+
 const SUBJECT = {
   ACCESS: 'access',
   REFRESH: 'refresh'
@@ -65,15 +65,26 @@ const authentication = ({
     return err
   };
 
-  // Returns a payload with the standard JWT claims stripped out which are used
+  // Return a payload with the standard JWT claims stripped out which are used
   // in node-jsonwebtoken's `options` parameter. These claims cannot be in both
   // the payload and the options parameter so must be stripped from the payload
   // when signing new tokens.
-  const excludeClaims = payload => {
-    return Object.keys(payload).reduce((strippedPayload, jwtKey) => {
-      return !EXCLUDED_JWT_CLAIMS.includes(jwtKey) ?
-        Object.assign(strippedPayload, { [jwtKey]: payload[jwtKey] }) :
-        strippedPayload
+  // Also remove 'permissions' if this is a refresh token (unnecessary data).
+  const excludeClaims = (payload, isRefresh) => {
+    const payloadKeys = Object.keys(payload)
+
+    // If this is a refresh token, don't include the permissions (not needed).
+    const excludedKeys = isRefresh
+      ? [...EXCLUDED_JWT_CLAIMS, 'permissions']
+      : EXCLUDED_JWT_CLAIMS
+
+    return payloadKeys.reduce((sanitizedPayload, key) => {
+      if (excludedKeys.includes(key)) return sanitizedPayload
+
+      return {
+        ...sanitizedPayload,
+        [key]: payload[key]
+      }
     }, {})
   }
 
@@ -81,32 +92,39 @@ const authentication = ({
   // Merge user-defined payload with some specific token claims (e.g., jti).
   // See https://github.com/auth0/node-jsonwebtoken for errors generated
   // by jsonwebtoken npm package.
-  const createToken = ({
+  const createToken = async ({
     payload = {},
     issuer = '',
     secret = '',
     algorithm = 'HS256',
     expiresIn = 0,
-    subject = ''
-  }) => new Promise((resolve, reject) => {
-    const options = {
-      jwtid: shortid.generate(), // jti claim
-      issuer, // corresponds to verify() check
-      algorithm,
-      expiresIn,
-      subject
-    }
+    subject = '',
+    idLength = 12 // see https://zelark.github.io/nano-id-cc/
+  }) => {
+    // Generate id asynchronously to prevent any unforeseen blocking during
+    // entropy collection (see https://github.com/ai/nanoid#async)
+    const jwtid = await nanoid(idLength)
 
-    // If this is a refresh token, don't include the permissions (not needed).
-    if (subject === SUBJECT.REFRESH && payload && payload.permissions)
-      delete payload.permissions
+    return new Promise((resolve, reject) => {
+      const options = {
+        jwtid, // jti claim
+        issuer, // corresponds to verify() check
+        algorithm,
+        expiresIn,
+        subject
+      }
+      const isRefresh = subject === SUBJECT.REFRESH
+        && payload
+        && payload.permissions
+      const sanitized_paylod = excludeClaims(payload, isRefresh)
 
-    jwt.sign(excludeClaims(payload), secret, options, (err, token) => {
-      if (err || !token) reject(`Failed to create token: ${ err }`)
+      jwt.sign(sanitized_paylod, secret, options, (error, token) => {
+        if (error || !token) reject(`Failed to create token: ${ error }`)
 
-      resolve(token)
+        resolve(token)
+      })
     })
-  })
+  }
 
   const createAccessToken = payload => createToken({
     payload,
