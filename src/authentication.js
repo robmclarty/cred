@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 const { nanoid } = require('nanoid')
 const lru = require('lru-cache')
-const { setRedisClient } = require('./whitelist')
+const { setRedisClient } = require('./allow_list')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
 
