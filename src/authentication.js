@@ -1,18 +1,27 @@
 const jwt = require('jsonwebtoken')
 const { nanoid } = require('nanoid')
 const lru = require('lru-cache')
-const { setRedisClient } = require('./allow_list')
+const makeAllowList = require('./allow_list')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
 
 const EXCLUDED_JWT_CLAIMS = ['iss', 'exp', 'sub', 'nbf', 'jti', 'iat']
 
-const SUBJECT = {
-  ACCESS: 'access',
-  REFRESH: 'refresh'
+const SUBJECTS = {
+  access: 'access',
+  refresh: 'refresh'
 }
 
 const cacheKeyFor = id => `${ TOKEN_CACHE_LABEL }:${ id }`
+
+// create a new error and append a custom status to it
+const createError = (status, msg) => {
+  const error = new Error(msg)
+
+  error.status = status
+
+  return error
+}
 
 const authentication = ({
   key,
@@ -33,11 +42,9 @@ const authentication = ({
   // token payloads.
   const strategies = {}
 
-  // TODO: Implement persistent storage (e.g., using Redis) as an alternative.
-  const activeTokens = lru({
-    max: 1000,
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
-  })
+  // A registry of currently active (allowed) jwtid values. If an id is not in
+  // the allow list, its access_token will be rejected.
+  const allowList = makeAllowList(cache)
 
   // Stores an authentication strategy (a function) which is defined by the user
   // and should return an object which will be passed into the tokenPayload
@@ -55,14 +62,6 @@ const authentication = ({
     delete strategies[name]
 
     return strategies
-  };
-
-  const createError = (status, msg) => {
-    const err = new Error(msg)
-
-    err.status = status
-
-    return err
   };
 
   // Return a payload with the standard JWT claims stripped out which are used
@@ -113,7 +112,7 @@ const authentication = ({
         expiresIn,
         subject
       }
-      const isRefresh = subject === SUBJECT.REFRESH
+      const isRefresh = subject === SUBJECTS.refresh
         && payload
         && payload.permissions
       const sanitized_paylod = excludeClaims(payload, isRefresh)
@@ -126,88 +125,78 @@ const authentication = ({
     })
   }
 
-  const createAccessToken = payload => createToken({
+  const createAccessToken = async payload => createToken({
     payload,
     issuer,
     secret: accessOpts.secret,
     expiresIn: accessOpts.expiresIn,
     algorithm: accessOpts.algorithm,
-    subject: SUBJECT.ACCESS
+    subject: SUBJECTS.access
   })
 
-  const createRefreshToken = payload => createToken({
+  const createRefreshToken = async payload => createToken({
     payload,
     issuer,
     secret: refreshOpts.secret,
     expiresIn: refreshOpts.expiresIn,
     algorithm: refreshOpts.algorithm,
-    subject: SUBJECT.REFRESH
+    subject: SUBJECTS.refresh
   })
 
   // Transform a payload into an object containing two tokens: `accessToken` and
   // `refreshToken`.
-  const createTokens = payload => Promise.all([
-    createAccessToken(payload),
-    createRefreshToken(payload)
-  ])
-    .then(tokens => ({
+  const createTokens = async payload => {
+    const tokens = await Promise.all([
+      createAccessToken(payload),
+      createRefreshToken(payload)
+    ])
+
+    return {
       payload,
       tokens: {
         accessToken: tokens[0],
         refreshToken: tokens[1]
       }
-    }))
+    }
+  }
 
   // Sets a token's id in the cache essentially "activating" it in a whitelist
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
-  const register = token => new Promise((resolve, reject) => {
+  const register = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.')
-    if (!cache) reject('No cache defined.')
+    if (!payload.jti) throw new Error('No Token ID')
+    if (!cache) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
     const nowInSeconds = Math.floor(Date.now() / 1000)
     const maxAge = payload.exp - nowInSeconds
 
-    switch(cache) {
-    case 'redis':
-      activeTokens.client.set(cacheKey, payload.jti)
-      activeTokens.client.expire(cacheKey, maxAge)
-      break
-    case 'memory': default:
-      activeTokens.set(cacheKey, payload.jti, maxAge)
-    }
+    await allowList.add(cacheKey, payload.jti, maxAge)
 
-    resolve(token)
-  })
+    return token
+  }
 
   // Remove a token's id from the cache essentially "deactivating" it from the
   // whitelist of valid tokens. If an id is not present in this cache it is
   // considered "revoked" or "invalid".
-  const revoke = token => new Promise((resolve, reject) => {
+  const revoke = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.')
-    if (!cache) reject('No cache defined.')
+    if (!payload.jti) throw new Error('No Token ID.')
+    if (!cache) throw new Error('No cache defined.')
 
     const cacheKey = cacheKeyFor(payload.jti)
 
-    switch(cache) {
-    case 'redis':
-      activeTokens.client.del(cacheKey)
-      break
-    case 'memory': default:
-      activeTokens.del(cacheKey)
-    }
+    await allowList.remove(cacheKey)
 
     resolve(token)
-  })
+  }
 
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
-  const verifyActive = token => new Promise((resolve, reject) => {
+  const verifyActive = async token => new Promise((resolve, reject) => {
     const payload = jwt.decode(token)
 
     if (!payload.jti) reject('No Token ID.')
@@ -215,67 +204,57 @@ const authentication = ({
 
     const cacheKey = cacheKeyFor(payload.jti)
 
-    switch(cache) {
-    case 'redis':
-      activeTokens.client.get(cacheKey, (err, reply) => {
-        if (err || reply === null) reject('Token has been revoked.')
-      })
-      break
-    case 'memory': default:
-      if (!activeTokens.get(cacheKey)) reject('Token has been revoked.')
-    }
+    const token = await allowList.get(cacheKey)
 
-    resolve(payload)
+    if (!token) throw new Error('Token has been revoked')
+
+    return payload
   })
 
   // Verify that the token is valid and that, if it is a refresh token, it has
   // not yet expired.
-  const verify = (token, secret, options) => new Promise((resolve, reject) => {
-    jwt.verify(token, secret, options, (err, payload) => {
-      if (err || !payload || !payload.jti)
-        return reject(err)
+  const verify = async (token, secret, options) => {
+    jwt.verify(token, secret, options, async (err, payload) => {
+      if (err || !payload || !payload.jti) throw new Error(err)
 
-      if (payload.sub && payload.sub === SUBJECT.REFRESH)
-        return verifyActive(token)
-          .then(() => resolve(payload))
-          .catch(err => reject(err))
+      if (payload.sub && payload.sub === SUBJECTS.refresh) {
+        await verifyActive(token)
+      }
 
-      resolve(payload)
+      return payload
     })
-  })
+  }
 
-  const getCache = () => {
-    switch(cache) {
-    case 'redis':
-      break;
-    case 'memory': default:
-      return activeTokens.dump()
-    }
+  const getCache = async () => {
+    return await allowList.list()
   }
 
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
-  const refresh = token => new Promise((resolve, reject) => {
-    createTokens(jwt.decode(token))
-      .then(results => {
-        const { payload, tokens } = results
+  const refresh = async token => {
+    try {
+      const { payload, tokens } = await createTokens(jwt.decode(token))
 
-        // Remove the old refresh token and register the newly created one.
-        return Promise.all([
-          tokens,
-          revoke(token),
-          register(tokens.refreshToken)
-        ])
-      })
-      .then(results => resolve(results[0])) // return tokens object
-      .catch(err => reject(`Problem refreshing tokens: ${ err }`))
-  })
+      // Remove the old refresh token and register the newly created one.
+      const results = await Promise.all([
+        tokens,
+        revoke(token),
+        register(tokens.refreshToken)
+      ])
+
+      return results[0] // return tokens object
+    } catch (error) {
+      throw new Error(`Problem refreshing tokens: ${ err }`)
+    }
+  }
 
   // Given a particular strategy, return Express middleware for authenticating.
   // If authenticated, attach an object called `req[key]` (`cred` by default)
   // to the req object containing JWTs and other meta data for cred.
   const authenticate = name => async (req, res, next) => {
-    if (!strategies[name]) return next(createError(500, `Strategy "${ name }" not defined.`))
+    if (!strategies[name]) {
+      return next(createError(500, `Strategy "${ name }" not defined`))
+    }
 
     try {
       const rawPayload = await strategies[name](req)

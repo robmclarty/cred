@@ -1,14 +1,12 @@
-'use strict';
-
-const jwt = require('jsonwebtoken');
+const jwt = require('jsonwebtoken')
 
 // Return an Error with an attribute `status` attached to it.
 const createError = (status, msg) => {
-  const err = new Error(msg);
+  const err = new Error(msg)
 
-  err.status = status;
+  err.status = status
 
-  return err;
+  return err
 };
 
 // If a bearer token has been sent in the authorization header, use that,
@@ -17,14 +15,13 @@ const createError = (status, msg) => {
 // The authorization header is two string separated by a space, the first chunk
 // being "Bearer" the second being the token, like `Authorization: Bearer <token>`.
 const tokenFromReq = req => {
-  if (req.headers.authorization &&
-      req.headers.authorization.split(' ')[0] === 'Bearer') {
+  if (req?.headers?.authorization?.split(' ')[0] === 'Bearer') {
     return req.headers.authorization.split(' ')[1];
   }
 
-  return req.headers['x-access-token'] ||
-    req.body.token ||
-    req.query.token;
+  return req.headers['x-access-token']
+    || req.body.token
+    || req.query.token
 };
 
 // Return a middleware that verifies a valid token and attaches its payload to
@@ -36,7 +33,9 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res,
     req[key] = { payload, token }
   }
 
-  if (!token) return next(createError(401, 'No token provided.'))
+  if (!token) {
+    return next(createError(401, 'No token provided.'))
+  }
 
   // If verify is not defined, verify the token directly.
   // NOTE: This will not verify if the token is in the whitelist cache as this
@@ -69,14 +68,14 @@ const hasPermission = (requiredActions, permittedActions) => {
     return requiredActions.reduce((hasRequiredAction, action) => {
       return permittedActions.indexOf(action) >= 0 ?
         true :
-        hasRequiredAction;
-    }, false);
+        hasRequiredAction
+    }, false)
   }
 
   // If requiredActions is not an Array, treat it as a String.
-  if (permittedActions.indexOf(requiredActions) >= 0) return true;
+  if (permittedActions.indexOf(requiredActions) >= 0) return true
 
-  return false;
+  return false
 }
 
 // For the given app_name (from params), check if the current user has any of

@@ -30,6 +30,17 @@ const makeAllowList = async (type = 'memory', redisUrl) => {
     ? await initRedis(redisUrl)
     : await initLRU()
 
+  const list = async () => {
+    switch (type) {
+      case 'redis':
+        // TODO
+        return
+      case 'memory':
+      default:
+        return cache.dump()
+    }
+  }
+
   const get = async (key) => {
     switch (type) {
       case 'redis':
@@ -73,6 +84,7 @@ const makeAllowList = async (type = 'memory', redisUrl) => {
   }
 
   return {
+    list,
     add,
     remove,
     get,
