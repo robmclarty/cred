@@ -104,19 +104,21 @@ const authentication = ({
     // entropy collection (see https://github.com/ai/nanoid#async)
     const jwtid = await nanoid(idLength)
 
-    return new Promise((resolve, reject) => {
-      const options = {
-        jwtid, // jti claim
-        issuer, // corresponds to verify() check
-        algorithm,
-        expiresIn,
-        subject
-      }
-      const isRefresh = subject === SUBJECTS.refresh
-        && payload
-        && payload.permissions
-      const sanitized_paylod = excludeClaims(payload, isRefresh)
+    const options = {
+      jwtid, // jti claim
+      issuer, // corresponds to verify() check
+      algorithm,
+      expiresIn,
+      subject
+    }
 
+    const isRefresh = subject === SUBJECTS.refresh
+      && payload
+      && payload.permissions
+
+    const sanitized_paylod = excludeClaims(payload, isRefresh)
+
+    return new Promise((resolve, reject) => {
       jwt.sign(sanitized_paylod, secret, options, (error, token) => {
         if (error || !token) reject(`Failed to create token: ${ error }`)
 
@@ -196,7 +198,7 @@ const authentication = ({
 
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
-  const verifyActive = async token => new Promise((resolve, reject) => {
+  const verifyActive = async token => {
     const payload = jwt.decode(token)
 
     if (!payload.jti) reject('No Token ID.')
@@ -209,19 +211,21 @@ const authentication = ({
     if (!token) throw new Error('Token has been revoked')
 
     return payload
-  })
+  }
 
   // Verify that the token is valid and that, if it is a refresh token, it has
   // not yet expired.
   const verify = async (token, secret, options) => {
-    jwt.verify(token, secret, options, async (err, payload) => {
-      if (err || !payload || !payload.jti) throw new Error(err)
+    return new Promise((resolve, reject) => {
+      jwt.verify(token, secret, options, (err, payload) => {
+        if (err || !payload || !payload.jti) reject(err)
 
-      if (payload.sub && payload.sub === SUBJECTS.refresh) {
-        await verifyActive(token)
-      }
+        if (payload.sub && payload.sub === SUBJECTS.refresh) {
+          await verifyActive(token)
+        }
 
-      return payload
+        resolve(payload)
+      })
     })
   }
 
