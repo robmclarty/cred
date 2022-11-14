@@ -88,7 +88,7 @@ const createToken = async ({
   })
 }
 
-const authentication = ({
+const authenticationFrom = async ({
   key,
   issuer,
   cache,
@@ -105,7 +105,7 @@ const authentication = ({
 
   // A registry of currently active (allowed) jwtid values. If an id is not in
   // the allow list, its access_token will be rejected.
-  const allowList = makeAllowList(cache)
+  const allowList = await makeAllowList(cache)
 
   // Stores an authentication strategy (a function) which is defined by the user
   // and should return an object which will be passed into the tokenPayload
@@ -160,13 +160,15 @@ const authentication = ({
     }
   }
 
+  const decode = token => jwt.decode(token)
+
   // Sets a token's id in the cache essentially "activating" it in a whitelist
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
   const register = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) throw new Error('No Token ID')
+    if (!payload.jti) throw new Error('No token ID')
     if (!cache) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
@@ -215,7 +217,7 @@ const authentication = ({
   const verify = async (token, secret, options) => {
     return new Promise((resolve, reject) => {
       jwt.verify(token, secret, options, async (error, payload) => {
-        if (error || !payload || !payload.jti) reject(error)
+        if (error || !payload || !payload.jti) return reject(error)
 
         if (payload.sub && payload.sub === SUBJECTS.refresh) {
           await verifyActive(token)
@@ -284,6 +286,7 @@ const authentication = ({
     refreshOpts,
     use,
     unuse,
+    decode,
     authenticate,
     verifyActive,
     verify,
@@ -298,4 +301,4 @@ const authentication = ({
   }
 }
 
-module.exports = authentication
+module.exports = authenticationFrom

@@ -21,11 +21,15 @@ const initRedis = async url => {
 const initLRU = async () => {
   return new LRU({
     max: 1000,
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
+    ttl: 1000 * 60 * 60 * 24 * 7 // default ttl is 1 week (in milliseconds)
   })
 }
 
-const makeAllowList = async (type = 'memory', redisUrl) => {
+const makeAllowList = async (type = 'memory', options = {}) => {
+  const {
+    redisUrl = ''
+  } = options
+
   const cache = type === 'redis'
     ? await initRedis(redisUrl)
     : await initLRU()
@@ -41,7 +45,7 @@ const makeAllowList = async (type = 'memory', redisUrl) => {
     }
   }
 
-  const get = async (key) => {
+  const get = async key => {
     switch (type) {
       case 'redis':
         return await cache.get(key)
@@ -51,15 +55,15 @@ const makeAllowList = async (type = 'memory', redisUrl) => {
     }
   }
 
-  const add = async (key, id, maxAge) => {
+  const add = async (key, id, ttl) => {
     switch (type) {
       case 'redis':
         await cache.client.set(key, id)
-        await cache.client.expire(key, maxAge)
+        await cache.client.expire(key, ttl)
         break
       case 'memory':
       default:
-        cache.set(key, id, maxAge)
+        cache.set(key, id, ttl)
     }
   }
 

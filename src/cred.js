@@ -9,7 +9,7 @@ const {
 
 const SUPPORTED_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
 
-const gotCred = ({
+const credFrom = async ({
   key = 'cred',
   resource = 'cred-auth-manager',
   issuer = 'cred-issuer',
@@ -49,7 +49,7 @@ const gotCred = ({
     refreshOpts
   }
 
-  const authentication = initAuthentication({
+  const authentication = await initAuthentication({
     key,
     issuer,
     cache,
@@ -98,4 +98,4 @@ const gotCred = ({
   }
 }
 
-module.exports = gotCred
+module.exports = credFrom
