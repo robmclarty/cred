@@ -14,8 +14,8 @@
   },
   "scripts": {
     "start": "",
-    "test": "",
-    "build": ""
+    "test": "npx jest",
+    "lint": "npx standardx --verbose | npx snazzy"
   },
   "keywords": [
     "authentication",
@@ -36,5 +36,31 @@
     "lru-cache": "7.14.1",
     "nanoid": "4.0.0",
     "redis": "4.5.0"
+  },
+  "devDependencies": {
+    "jest": "29.3.1",
+    "snazzy": "9.0.0",
+    "standardx": "7.0.0"
+  },
+  "jest": {
+    "displayName": "cred",
+    "verbose": true
+  },
+  "standardx": {
+    "global": [
+      "describe",
+      "test",
+      "beforeEach",
+      "beforeAll",
+      "before",
+      "afterEach",
+      "afterAll",
+      "after"
+    ]
+  },
+  "eslintConfig": {
+    "rules": {
+      "operator-linebreak": 0
+    }
   }
 }
