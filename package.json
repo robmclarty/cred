@@ -2,7 +2,7 @@
   "name": "cred",
   "version": "0.6.3",
   "description": "JWT authentication and authorization for distributed express APIs.",
-  "main": "src/index.js",
+  "main": "dist/index.js",
   "author": "Rob McLarty <r@robmclarty.com> (http://robmclarty.com)",
   "license": "MIT",
   "repository": {
@@ -10,11 +10,12 @@
     "url": "git+https://github.com/robmclarty/cred.git"
   },
   "engines": {
-    "node": ">= 6.0.0"
+    "node": ">= 8.3.0"
   },
   "scripts": {
-    "start": "node examples/basic.js",
-    "test": "./node_modules/tape/bin/tape ./tests/**/*_test.js"
+    "start": "",
+    "test": "",
+    "build": ""
   },
   "keywords": [
     "authentication",
