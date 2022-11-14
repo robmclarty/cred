@@ -91,7 +91,11 @@ const gotCred = ({
     createError
   }
 
-  return Object.assign(settings, authentication, authorization)
+  return {
+    ...settings,
+    ...authentication,
+    ...authorization
+  }
 }
 
 module.exports = gotCred

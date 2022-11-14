@@ -275,6 +275,11 @@ const authentication = ({
   }
 
   return {
+    key,
+    issuer,
+    cache,
+    accessOpts,
+    refreshOpts,
     use,
     unuse,
     authenticate,

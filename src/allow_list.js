@@ -1,4 +1,4 @@
-const lru = require('lru-cache')
+const LRU = require('lru-cache')
 const redis = require('redis')
 
 // Create a new Redis client and attach it to the Express request object.
@@ -19,7 +19,7 @@ const initRedis = async url => {
 
 // Create a new LRU client
 const initLRU = async () => {
-  return lru({
+  return new LRU({
     max: 1000,
     maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week (in milliseconds)
   })
