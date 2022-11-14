@@ -15,44 +15,52 @@ const createError = (status, msg) => {
 // The authorization header is two string separated by a space, the first chunk
 // being "Bearer" the second being the token, like `Authorization: Bearer <token>`.
 const tokenFromReq = req => {
-  if (req?.headers?.authorization?.split(' ')[0] === 'Bearer') {
-    return req.headers.authorization.split(' ')[1];
+  const authHeaderParts = req?.headers?.authorization?.split(' ') || []
+
+  if (authHeaderParts[0] === 'Bearer') {
+    return authHeaderParts[1];
   }
 
   return req.headers['x-access-token']
     || req.body.token
-    || req.query.token
+    || req.query.token // WARNING: should we support token in query params?
 };
 
 // Return a middleware that verifies a valid token and attaches its payload to
 // the request on `key` for use in other functions down the middleware chain.
-const requireValidToken = (key, secret, issuer, algorithm, verify) => (req, res, next) => {
+const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req, res, next) => {
   const token = tokenFromReq(req)
   const options = { issuer, algorithms: [algorithm] }
+
   const assignPayloadToReq = payload => {
     req[key] = { payload, token }
   }
 
   if (!token) {
-    return next(createError(401, 'No token provided.'))
+    return next(createError(401, 'No token provided'))
   }
 
   // If verify is not defined, verify the token directly.
   // NOTE: This will not verify if the token is in the whitelist cache as this
   // method is not connected to the cred instance. To do that, pass in a verify
   // function that is aware of the cred instance (and its cache).
-  if (!verify) return jwt.verify(token, secret, options, (err, payload) => {
-    if (err || !payload || !payload.jti) return next(err)
+  if (!verify) return jwt.verify(token, secret, options, (error, payload) => {
+    if (error || !payload || !payload.jti) return next(error)
 
     assignPayloadToReq(payload)
 
     return next()
   })
 
-  verify(token, secret, options)
-    .then(assignPayloadToReq)
-    .then(next)
-    .catch(err => next(createError(401, `Authentication failed: ${ err }`)))
+  try {
+    const payload = await verify(token, secret, options)
+
+    assignPayloadToReq(payload)
+
+    return next()
+  } catch (error) {
+    next(createError(401, `Authentication failed: ${ error }`))
+  }
 }
 
 // If at least one of the permittedActions exists in requiredActions, then consider
@@ -134,12 +142,17 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
 const requirePropIn = key => (name, value) => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
-  if (!req[key])
+  if (!req[key]) {
     return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
-  if (!req[key].payload)
+  }
+
+  if (!req[key].payload) {
     return next(createError(400, 'Cred auth attribute has no payload'))
-  if (!req[key].payload[name] || req[key].payload[name] !== value)
+  }
+
+  if (!req[key].payload[name] || req[key].payload[name] !== value) {
     return next(createError(401, `Insufficient priviledges`))
+  }
 
   next()
 }
