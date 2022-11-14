@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 // Return an Error with an attribute `status` attached to it.
+// TODO: move to common module
 const createError = (status, msg) => {
   const err = new Error(msg)
 

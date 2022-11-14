@@ -15,6 +15,7 @@ const SUBJECTS = {
 const cacheKeyFor = id => `${ TOKEN_CACHE_LABEL }:${ id }`
 
 // create a new error and append a custom status to it
+// TODO: move to common module
 const createError = (status, msg) => {
   const error = new Error(msg)
 
