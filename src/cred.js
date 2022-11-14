@@ -1,5 +1,3 @@
-'use strict'
-
 const initAuthentication = require('./authentication')
 const {
   requireValidToken,
@@ -9,9 +7,9 @@ const {
   tokenFromReq
 } = require('./authorization')
 
-SUPPORTED_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
+const SUPPORTED_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
 
-const cred = ({
+const gotCred = ({
   key = 'cred',
   resource = 'cred-auth-manager',
   issuer = 'cred-issuer',
@@ -96,4 +94,4 @@ const cred = ({
   return Object.assign(settings, authentication, authorization)
 }
 
-module.exports = cred;
+module.exports = gotCred

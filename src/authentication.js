@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken')
 const { nanoid } = require('nanoid')
-const lru = require('lru-cache')
 const makeAllowList = require('./allow_list')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
@@ -12,7 +11,7 @@ const SUBJECTS = {
   refresh: 'refresh'
 }
 
-const cacheKeyFor = id => `${ TOKEN_CACHE_LABEL }:${ id }`
+const cacheKeyFor = id => `${TOKEN_CACHE_LABEL}:${id}`
 
 // create a new error and append a custom status to it
 // TODO: move to common module
@@ -28,17 +27,13 @@ const authentication = ({
   key,
   issuer,
   cache,
-  accessOpts = {
-    secret,
-    expiresIn,
-    algorithm
-  },
-  refreshOpts = {
-    secret,
-    expiresIn,
-    algorithm
-  }
+  accessOpts = {},
+  refreshOpts = {}
 }) => {
+  if (!accessOpts || accessOpts === {} || !refreshOpts || refreshOpts === {}) {
+    throw new Error('Cred not configured properly')
+  }
+
   // A set of functions to be used for verifying authentication and generating
   // token payloads.
   const strategies = {}
@@ -57,13 +52,13 @@ const authentication = ({
     strategies[name] = strategy
 
     return strategies
-  };
+  }
 
   const unuse = name => {
     delete strategies[name]
 
     return strategies
-  };
+  }
 
   // Return a payload with the standard JWT claims stripped out which are used
   // in node-jsonwebtoken's `options` parameter. These claims cannot be in both
@@ -117,11 +112,11 @@ const authentication = ({
       && payload
       && payload.permissions
 
-    const sanitized_paylod = excludeClaims(payload, isRefresh)
+    const sanitizedPayload = excludeClaims(payload, isRefresh)
 
     return new Promise((resolve, reject) => {
-      jwt.sign(sanitized_paylod, secret, options, (error, token) => {
-        if (error || !token) reject(`Failed to create token: ${ error }`)
+      jwt.sign(sanitizedPayload, secret, options, (error, token) => {
+        if (error || !token) reject(new Error(`Failed to create token: ${error}`))
 
         resolve(token)
       })
@@ -187,14 +182,14 @@ const authentication = ({
   const revoke = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) throw new Error('No Token ID.')
-    if (!cache) throw new Error('No cache defined.')
+    if (!payload.jti) throw new Error('No Token ID')
+    if (!cache) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
 
     await allowList.remove(cacheKey)
 
-    resolve(token)
+    return token
   }
 
   // Checks to see if the token's id exists in the cache (a whitelist) to
@@ -202,14 +197,13 @@ const authentication = ({
   const verifyActive = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) reject('No Token ID.')
-    if (!cache || !activeTokens) reject('No cache defined.')
+    if (!payload.jti) throw new Error('No Token ID')
+    if (!cache || !allowList) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
+    const cachedToken = await allowList.get(cacheKey)
 
-    const token = await allowList.get(cacheKey)
-
-    if (!token) throw new Error('Token has been revoked')
+    if (!cachedToken) throw new Error('Token has been revoked')
 
     return payload
   }
@@ -218,8 +212,8 @@ const authentication = ({
   // not yet expired.
   const verify = async (token, secret, options) => {
     return new Promise((resolve, reject) => {
-      jwt.verify(token, secret, options, (err, payload) => {
-        if (err || !payload || !payload.jti) reject(err)
+      jwt.verify(token, secret, options, async (error, payload) => {
+        if (error || !payload || !payload.jti) reject(error)
 
         if (payload.sub && payload.sub === SUBJECTS.refresh) {
           await verifyActive(token)
@@ -238,7 +232,7 @@ const authentication = ({
   // create new access and refresh tokens.
   const refresh = async token => {
     try {
-      const { payload, tokens } = await createTokens(jwt.decode(token))
+      const { tokens } = await createTokens(jwt.decode(token))
 
       // Remove the old refresh token and register the newly created one.
       const results = await Promise.all([
@@ -249,7 +243,7 @@ const authentication = ({
 
       return results[0] // return tokens object
     } catch (error) {
-      throw new Error(`Problem refreshing tokens: ${ err }`)
+      throw new Error(`Problem refreshing tokens: ${error}`)
     }
   }
 
@@ -258,7 +252,7 @@ const authentication = ({
   // to the req object containing JWTs and other meta data for cred.
   const authenticate = name => async (req, res, next) => {
     if (!strategies[name]) {
-      return next(createError(500, `Strategy "${ name }" not defined`))
+      return next(createError(500, `Strategy "${name}" not defined`))
     }
 
     try {
@@ -275,8 +269,8 @@ const authentication = ({
       }
 
       next()
-    } catch (err) {
-      next(createError(401, `Unauthorized: ${ err }`))
+    } catch (error) {
+      next(createError(401, `Unauthorized: ${error}`))
     }
   }
 

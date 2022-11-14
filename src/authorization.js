@@ -8,7 +8,7 @@ const createError = (status, msg) => {
   err.status = status
 
   return err
-};
+}
 
 // If a bearer token has been sent in the authorization header, use that,
 // otherwise, check if a token was sent in the request body, as a parameter, or
@@ -19,13 +19,13 @@ const tokenFromReq = req => {
   const authHeaderParts = req?.headers?.authorization?.split(' ') || []
 
   if (authHeaderParts[0] === 'Bearer') {
-    return authHeaderParts[1];
+    return authHeaderParts[1]
   }
 
   return req.headers['x-access-token']
     || req.body.token
     || req.query.token // WARNING: should we support token in query params?
-};
+}
 
 // Return a middleware that verifies a valid token and attaches its payload to
 // the request on `key` for use in other functions down the middleware chain.
@@ -45,13 +45,15 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req
   // NOTE: This will not verify if the token is in the whitelist cache as this
   // method is not connected to the cred instance. To do that, pass in a verify
   // function that is aware of the cred instance (and its cache).
-  if (!verify) return jwt.verify(token, secret, options, (error, payload) => {
-    if (error || !payload || !payload.jti) return next(error)
+  if (!verify) {
+    return jwt.verify(token, secret, options, (error, payload) => {
+      if (error || !payload || !payload.jti) return next(error)
 
-    assignPayloadToReq(payload)
+      assignPayloadToReq(payload)
 
-    return next()
-  })
+      return next()
+    })
+  }
 
   try {
     const payload = await verify(token, secret, options)
@@ -60,7 +62,7 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req
 
     return next()
   } catch (error) {
-    next(createError(401, `Authentication failed: ${ error }`))
+    next(createError(401, `Authentication failed: ${error}`))
   }
 }
 
@@ -69,15 +71,15 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req
 // @requiredActions - Array|String - The necessary actions required to have permission.
 // @permittedActions - Array - The actions that have actually been permitted.
 const hasPermission = (requiredActions, permittedActions) => {
-  if (!permittedActions) return false;
+  if (!permittedActions) return false
 
   // If requiredActions is an Array, loop through each element. If any of the
   // requiredActions exist in permittedActions, permission is given.
   if (Array.isArray(requiredActions)) {
     return requiredActions.reduce((hasRequiredAction, action) => {
-      return permittedActions.indexOf(action) >= 0 ?
-        true :
-        hasRequiredAction
+      return permittedActions.indexOf(action) >= 0
+        ? true
+        : hasRequiredAction
     }, false)
   }
 
@@ -118,14 +120,21 @@ const hasPermission = (requiredActions, permittedActions) => {
 const requireResourcePermission = (key, resourceName) => requiredActions => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
-  if (!req[key])
-    return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
-  if (!req[key].payload)
+  if (!req[key]) {
+    return next(createError(400, `Cred auth attribute "${key}" missing in request`))
+  }
+
+  if (!req[key].payload) {
     return next(createError(400, 'Cred auth attribute has no payload'))
-  if (!req[key].payload.permissions)
+  }
+
+  if (!req[key].payload.permissions) {
     return next(createError(401, 'Payload has no permissions'))
-  if (!req[key].payload.permissions[resourceName])
-    return next(createError(401, `No permissions for resource "${ resourceName }"`))
+  }
+
+  if (!req[key].payload.permissions[resourceName]) {
+    return next(createError(401, `No permissions for resource "${resourceName}"`))
+  }
 
   // NOTE: This requires the existence of req[key] with a property called
   // "payload" that has "permissions". This should exist if the middleware
@@ -134,8 +143,9 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
 
   // If the token payload has a set of actions for this app's name and those
   // actions include at least one of the requiredActions, proceed to next().
-  if (!permission || !hasPermission(requiredActions, permission.actions))
+  if (!permission || !hasPermission(requiredActions, permission.actions)) {
     return next(createError(401, 'Insufficient permissions'))
+  }
 
   next()
 }
@@ -144,7 +154,7 @@ const requirePropIn = key => (name, value) => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key]) {
-    return next(createError(400, `Cred auth attribute "${ key }" missing in request`))
+    return next(createError(400, `Cred auth attribute "${key}" missing in request`))
   }
 
   if (!req[key].payload) {
@@ -152,7 +162,7 @@ const requirePropIn = key => (name, value) => (req, res, next) => {
   }
 
   if (!req[key].payload[name] || req[key].payload[name] !== value) {
-    return next(createError(401, `Insufficient priviledges`))
+    return next(createError(401, 'Insufficient priviledges'))
   }
 
   next()
