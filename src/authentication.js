@@ -23,6 +23,71 @@ const createError = (status, msg) => {
   return error
 }
 
+// Return a payload with the standard JWT claims stripped out which are used
+// in node-jsonwebtoken's `options` parameter. These claims cannot be in both
+// the payload and the options parameter so must be stripped from the payload
+// when signing new tokens.
+// Also remove 'permissions' if this is a refresh token (unnecessary data).
+const excludeClaims = (payload, isRefresh) => {
+  const payloadKeys = Object.keys(payload)
+
+  // If this is a refresh token, don't include the permissions (not needed).
+  const excludedKeys = isRefresh
+    ? [...EXCLUDED_JWT_CLAIMS, 'permissions']
+    : EXCLUDED_JWT_CLAIMS
+
+  const sanitizedKeys = payloadKeys.reduce((sanitizedPayload, key) => {
+    if (excludedKeys.includes(key)) return sanitizedPayload
+
+    return {
+      ...sanitizedPayload,
+      [key]: payload[key]
+    }
+  }, {})
+
+  return sanitizedKeys
+}
+
+// Create a new token with the provided payload and return the generated token.
+// Merge user-defined payload with some specific token claims (e.g., jti).
+// See https://github.com/auth0/node-jsonwebtoken for errors generated
+// by jsonwebtoken npm package.
+const createToken = async ({
+  payload = {},
+  issuer = '',
+  secret = '',
+  algorithm = 'HS256',
+  expiresIn = 0,
+  subject = '',
+  idLength = 12 // see https://zelark.github.io/nano-id-cc/
+}) => {
+  // Generate id asynchronously to prevent any unforeseen blocking during
+  // entropy collection (see https://github.com/ai/nanoid#async)
+  const jwtid = await nanoid(idLength)
+
+  const options = {
+    jwtid, // jti claim
+    issuer, // corresponds to verify() check
+    algorithm,
+    expiresIn,
+    subject
+  }
+
+  const isRefresh = subject === SUBJECTS.refresh
+    && payload
+    && payload.permissions
+
+  const sanitizedPayload = excludeClaims(payload, isRefresh)
+
+  return new Promise((resolve, reject) => {
+    jwt.sign(sanitizedPayload, secret, options, (error, token) => {
+      if (error || !token) reject(new Error(`Failed to create token: ${error}`))
+
+      resolve(token)
+    })
+  })
+}
+
 const authentication = ({
   key,
   issuer,
@@ -31,7 +96,7 @@ const authentication = ({
   refreshOpts = {}
 }) => {
   if (!accessOpts || accessOpts === {} || !refreshOpts || refreshOpts === {}) {
-    throw new Error('Cred not configured properly')
+    throw new Error('Cred authentication module not configured properly')
   }
 
   // A set of functions to be used for verifying authentication and generating
@@ -58,69 +123,6 @@ const authentication = ({
     delete strategies[name]
 
     return strategies
-  }
-
-  // Return a payload with the standard JWT claims stripped out which are used
-  // in node-jsonwebtoken's `options` parameter. These claims cannot be in both
-  // the payload and the options parameter so must be stripped from the payload
-  // when signing new tokens.
-  // Also remove 'permissions' if this is a refresh token (unnecessary data).
-  const excludeClaims = (payload, isRefresh) => {
-    const payloadKeys = Object.keys(payload)
-
-    // If this is a refresh token, don't include the permissions (not needed).
-    const excludedKeys = isRefresh
-      ? [...EXCLUDED_JWT_CLAIMS, 'permissions']
-      : EXCLUDED_JWT_CLAIMS
-
-    return payloadKeys.reduce((sanitizedPayload, key) => {
-      if (excludedKeys.includes(key)) return sanitizedPayload
-
-      return {
-        ...sanitizedPayload,
-        [key]: payload[key]
-      }
-    }, {})
-  }
-
-  // Create a new token with the provided payload and return the generated token.
-  // Merge user-defined payload with some specific token claims (e.g., jti).
-  // See https://github.com/auth0/node-jsonwebtoken for errors generated
-  // by jsonwebtoken npm package.
-  const createToken = async ({
-    payload = {},
-    issuer = '',
-    secret = '',
-    algorithm = 'HS256',
-    expiresIn = 0,
-    subject = '',
-    idLength = 12 // see https://zelark.github.io/nano-id-cc/
-  }) => {
-    // Generate id asynchronously to prevent any unforeseen blocking during
-    // entropy collection (see https://github.com/ai/nanoid#async)
-    const jwtid = await nanoid(idLength)
-
-    const options = {
-      jwtid, // jti claim
-      issuer, // corresponds to verify() check
-      algorithm,
-      expiresIn,
-      subject
-    }
-
-    const isRefresh = subject === SUBJECTS.refresh
-      && payload
-      && payload.permissions
-
-    const sanitizedPayload = excludeClaims(payload, isRefresh)
-
-    return new Promise((resolve, reject) => {
-      jwt.sign(sanitizedPayload, secret, options, (error, token) => {
-        if (error || !token) reject(new Error(`Failed to create token: ${error}`))
-
-        resolve(token)
-      })
-    })
   }
 
   const createAccessToken = async payload => createToken({
@@ -290,6 +292,7 @@ const authentication = ({
     register,
     refresh,
     createToken,
+    createTokens,
     createAccessToken,
     createRefreshToken
   }
