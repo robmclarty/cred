@@ -82,14 +82,9 @@ describe('Authorization', () => {
   test('require access token with missing token', async () => {
     const mockRequest = mockRequestFrom('')
 
-    try {
-      await cred.requireAccessToken(mockRequest, {}, error => {
-        throw error
-      })
-      assert(false) // this shouldn't happen
-    } catch (error) {
+    await cred.requireAccessToken(mockRequest, {}, error => {
       assert.match(error.toString(), /No token provided/)
-    }
+    })
   })
 
   test('require access token with invalid signature', async () => {
@@ -102,14 +97,9 @@ describe('Authorization', () => {
     })
     const mockRequest = mockRequestFrom(token)
 
-    try {
-      await cred.requireAccessToken(mockRequest, {}, error => {
-        throw error
-      })
-      assert(false) // this shouldn't happen
-    } catch (error) {
+    await cred.requireAccessToken(mockRequest, {}, error => {
       assert.match(error.toString(), /invalid signature/)
-    }
+    })
   })
 
   test('require refresh token', async () => {
@@ -127,14 +117,9 @@ describe('Authorization', () => {
   test('require refresh token with missing token', async () => {
     const mockRequest = mockRequestFrom('')
 
-    try {
-      await cred.requireRefreshToken(mockRequest, {}, error => {
-        throw error
-      })
-      assert(false) // this shouldn't happen
-    } catch (error) {
+    await cred.requireRefreshToken(mockRequest, {}, error => {
       assert.match(error.toString(), /No token provided/)
-    }
+    })
   })
 
   test('require refresh token with invalid signature', async () => {
@@ -147,14 +132,9 @@ describe('Authorization', () => {
     })
     const mockRequest = mockRequestFrom(token)
 
-    try {
-      await cred.requireRefreshToken(mockRequest, {}, error => {
-        throw error
-      })
-      assert(false) // this shouldn't happen
-    } catch (error) {
+    await cred.requireRefreshToken(mockRequest, {}, error => {
       assert.match(error.toString(), /invalid signature/)
-    }
+    })
   })
 
   test('require refresh token that has been revoked', async () => {
@@ -162,13 +142,25 @@ describe('Authorization', () => {
 
     await cred.revoke(testRefreshToken)
 
-    try {
-      await cred.requireRefreshToken(mockRequest, {}, error => {
-        throw error
-      })
-      assert(false) // this shouldn't happen
-    } catch (error) {
+    await cred.requireRefreshToken(mockRequest, {}, error => {
       assert.match(error.toString(), /Token has been revoked/)
-    }
+    })
+  })
+
+  test('require permission', async () => {
+    const mockRequest = mockRequestFrom(testAccessToken)
+
+    await cred.requireAccessToken(mockRequest, {}, () => {})
+    await cred.requirePermission('read:users')(mockRequest, {}, error => {
+      assert(!error)
+    })
+  })
+
+  test('require permission with uninitialized cred', async () => {
+    const mockRequest = mockRequestFrom(testAccessToken)
+
+    await cred.requirePermission('read:users')(mockRequest, {}, error => {
+      assert.match(error.toString(), /missing in request/)
+    })
   })
 })

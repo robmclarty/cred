@@ -99,9 +99,7 @@ const hasPermission = (requiredActions, permittedActions) => {
   }
 
   // If requiredActions is not an Array, treat it as a String.
-  if (permittedActions.indexOf(requiredActions) >= 0) return true
-
-  return false
+  return permittedActions.includes(requiredActions)
 }
 
 // For the given app_name (from params), check if the current user has any of
@@ -147,18 +145,14 @@ const requirePermission = (key, resourceName) => requiredActions => (req, res, n
     return next(createError(401, 'Payload has no permissions'))
   }
 
-  if (!req[key].payload.permissions[resourceName]) {
-    return next(createError(401, `No permissions for resource "${resourceName}"`))
-  }
-
   // NOTE: This requires the existence of req[key] with a property called
   // "payload" that has "permissions". This should exist if the middleware
   // requireValidToken was used before calling this function.
-  const permission = req[key].payload.permissions[resourceName]
+  const { permissions } = req[key].payload
 
   // If the token payload has a set of actions for this app's name and those
   // actions include at least one of the requiredActions, proceed to next().
-  if (!permission || !hasPermission(requiredActions, permission.actions)) {
+  if (!permissions || !hasPermission(requiredActions, permissions)) {
     return next(createError(401, 'Insufficient permissions'))
   }
 
