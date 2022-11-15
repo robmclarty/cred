@@ -7,37 +7,58 @@ const {
   tokenFromReq
 } = require('./authorization')
 
-const SUPPORTED_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'ES512']
+const DEFAULT_ALGORITHM = 'HS384'
 
-const credFrom = async ({
-  key = 'cred',
-  resource = 'cred-auth-manager',
-  issuer = 'cred-issuer',
-  cache = 'memory',
-  accessOpts = {
-    secret: 'access-secret',
-    privateKey: '',
-    publicKey: '',
-    expiresIn: '24 hours',
-    algorithm: 'HS256'
-  },
-  refreshOpts = {
-    secret: 'refresh-secret',
-    privateKey: '',
-    publicKey: '',
-    expiresIn: '7 days',
-    algorithm: 'HS256'
-  }
-}) => {
-  const secretFromOpts = (opts = {}, isPrivate = false) => {
-    const key = isPrivate ? opts.privateKey : opts.publicKey
-    const secret = SUPPORTED_ALGORITHMS.includes(opts.algorithm)
-      ? key
-      : opts.secret
+const SUPPORTED_PUBLIC_KEY_ALGORITHMS = [
+  'RS256',
+  'RS384',
+  'RS512',
+  'ES256',
+  'ES384',
+  'ES512'
+]
 
-    return secret
-  }
+const secretFrom = (opts = {}, isPrivate = false) => {
+  const {
+    secret = 'default-secret',
+    privateKey = '',
+    publicKey = '',
+    algorithm = DEFAULT_ALGORITHM
+  } = opts
+
+  const key = isPrivate
+    ? privateKey
+    : publicKey
+
+  return SUPPORTED_PUBLIC_KEY_ALGORITHMS.includes(algorithm)
+    ? key
+    : secret
+}
+
+const credFrom = async (options = {}) => {
+  const {
+    key = 'cred',
+    resource = 'cred-auth-manager',
+    issuer = 'cred-issuer',
+    cache = 'memory',
+    accessOpts = {
+      secret: 'access-secret',
+      privateKey: '',
+      publicKey: '',
+      expiresIn: '24 hours',
+      algorithm: DEFAULT_ALGORITHM
+    },
+    refreshOpts = {
+      secret: 'refresh-secret',
+      privateKey: '',
+      publicKey: '',
+      expiresIn: '7 days',
+      algorithm: DEFAULT_ALGORITHM
+    }
+  } = options
+
   const requirePermission = requireResourcePermission(key, resource)
+
   const requireProp = requirePropIn(key)
 
   const settings = {
@@ -54,12 +75,12 @@ const credFrom = async ({
     issuer,
     cache,
     accessOpts: {
-      secret: secretFromOpts(accessOpts, true),
+      secret: secretFrom(accessOpts, true),
       expiresIn: accessOpts.expiresIn,
       algorithm: accessOpts.algorithm
     },
     refreshOpts: {
-      secret: secretFromOpts(refreshOpts, true),
+      secret: secretFrom(refreshOpts, true),
       expiresIn: refreshOpts.expiresIn,
       algorithm: refreshOpts.algorithm
     }
