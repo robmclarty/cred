@@ -106,10 +106,6 @@ const hasPermission = (requiredActions, permittedActions) => {
 // the requiredActions in his/her permissions (as given by the requested token
 // payload).
 //
-// A token's `permissions` object has a set of attributes which are themselves
-// appName strings, thus allowing us to retrieve a particular app's set of
-// permissible actions by referencing it through `permissions[name]`.
-//
 // For reference, an example token payload looks like this:
 // {
 //   "jti": "2WEKaVNO",
@@ -118,19 +114,12 @@ const hasPermission = (requiredActions, permittedActions) => {
 //   "email": "rob@email.com",
 //   "isActive": true,
 //   "isAdmin": true,
-//   "permissions": {
-//     "resource-name": {
-//       "actions": ["action1", "action2"]
-//     },
-//     "another-resource-name": {
-//       "actions": ["action3"]
-//     }
-//   },
+//   "permissions": ["action1", "action2"]
 //   "iat": 1448652011,
 //   "exp": 1448652911,
 //   "iss": "cred-issuer"
 // }
-const requirePermission = (key, resourceName) => requiredActions => (req, res, next) => {
+const requirePermission = key => requiredActions => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key]) {

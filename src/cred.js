@@ -36,7 +36,6 @@ const secretFrom = (opts = {}, isPrivate = false) => {
 const credFrom = async (options = {}) => {
   const {
     key = 'cred',
-    resource = 'cred-auth-manager',
     issuer = 'cred-issuer',
     cache = 'memory',
     accessOpts = {
@@ -58,7 +57,6 @@ const credFrom = async (options = {}) => {
   const settings = {
     key,
     issuer,
-    resource,
     cache,
     accessOpts,
     refreshOpts
@@ -80,7 +78,7 @@ const credFrom = async (options = {}) => {
     }
   })
 
-  const requirePermission = authorization.requirePermission(key, resource)
+  const requirePermission = authorization.requirePermission(key)
 
   const requireProp = authorization.requireProp(key)
 
