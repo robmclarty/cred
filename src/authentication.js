@@ -95,10 +95,6 @@ const authenticationFrom = async ({
   accessOpts = {},
   refreshOpts = {}
 }) => {
-  if (!accessOpts || accessOpts === {} || !refreshOpts || refreshOpts === {}) {
-    throw new Error('Cred authentication module not configured properly')
-  }
-
   // A set of functions to be used for verifying authentication and generating
   // token payloads.
   const strategies = {}

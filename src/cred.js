@@ -1,4 +1,4 @@
-const initAuthentication = require('./authentication')
+const authenticationFrom = require('./authentication')
 const {
   requireValidToken,
   requireResourcePermission,
@@ -35,6 +35,10 @@ const secretFrom = (opts = {}, isPrivate = false) => {
     : secret
 }
 
+/**
+ * Create a new cred instance from options which will hold some internal state
+ * within its closure for things like auth strats, and allow-list cache.
+ */
 const credFrom = async (options = {}) => {
   const {
     key = 'cred',
@@ -57,10 +61,6 @@ const credFrom = async (options = {}) => {
     }
   } = options
 
-  const requirePermission = requireResourcePermission(key, resource)
-
-  const requireProp = requirePropIn(key)
-
   const settings = {
     key,
     issuer,
@@ -70,7 +70,11 @@ const credFrom = async (options = {}) => {
     refreshOpts
   }
 
-  const authentication = await initAuthentication({
+  const requirePermission = requireResourcePermission(key, resource)
+
+  const requireProp = requirePropIn(key)
+
+  const authentication = await authenticationFrom({
     key,
     issuer,
     cache,
