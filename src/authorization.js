@@ -29,6 +29,8 @@ const tokenFromReq = req => {
 
 // Return a middleware that verifies a valid token and attaches its payload to
 // the request on `key` for use in other functions down the middleware chain.
+// TODO: This is pertty convoluted. Refactor to use authentication.verify()
+// instead of redefining it here (can't pass in through argument)
 const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req, res, next) => {
   const token = tokenFromReq(req)
   const options = { issuer, algorithms: [algorithm] }
