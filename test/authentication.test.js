@@ -226,9 +226,6 @@ describe('Authentication', () => {
       ...testPayload,
       expiresIn: '1 day'
     })
-
-    await cred.register(token)
-
     const isValid = await cred.verify(token, testConfig.refreshOpts.secret)
 
     assert(isValid)
@@ -319,14 +316,10 @@ describe('Authentication', () => {
       expiresIn: '1 day'
     })
 
-    await cred.register(token)
-
     const isActive = await cred.verifyActive(token)
-
     assert(isActive)
 
     const revokedToken = await cred.revoke(token)
-
     assert.equal(revokedToken, token)
 
     try {

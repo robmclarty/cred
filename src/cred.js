@@ -84,6 +84,8 @@ const credFrom = async (options = {}) => {
 
   const requireProp = authorization.requireProp(key)
 
+  const getCredFrom = authorization.getCredFrom(key)
+
   // TODO: verify token `sub` before trying anything else (must be "access")
   const requireAccessToken = authorization.requireValidToken(
     key,
@@ -102,12 +104,13 @@ const credFrom = async (options = {}) => {
   )
 
   const authorizations = {
+    getCredFrom,
+    getTokenFrom: authorization.getTokenFrom,
+    createError: authorization.createError,
     requireAccessToken,
     requireRefreshToken,
     requirePermission,
-    requireProp,
-    tokenFromReq: authorization.tokenFromReq,
-    createError: authorization.createError
+    requireProp
   }
 
   return {

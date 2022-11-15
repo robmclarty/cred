@@ -121,48 +121,13 @@ const authenticationFrom = async ({
     return strategies
   }
 
-  const createAccessToken = async payload => createToken({
-    payload,
-    issuer,
-    secret: accessOpts.secret,
-    expiresIn: accessOpts.expiresIn,
-    algorithm: accessOpts.algorithm,
-    subject: SUBJECTS.access
-  })
-
-  const createRefreshToken = async payload => createToken({
-    payload,
-    issuer,
-    secret: refreshOpts.secret,
-    expiresIn: refreshOpts.expiresIn,
-    algorithm: refreshOpts.algorithm,
-    subject: SUBJECTS.refresh
-  })
-
-  // Transform a payload into an object containing two tokens: `accessToken` and
-  // `refreshToken`.
-  const createTokens = async payload => {
-    const tokens = await Promise.all([
-      createAccessToken(payload),
-      createRefreshToken(payload)
-    ])
-
-    return {
-      payload,
-      tokens: {
-        accessToken: tokens[0],
-        refreshToken: tokens[1]
-      }
-    }
-  }
-
   const decode = token => jwt.decode(token)
 
   // Sets a token's id in the cache essentially "activating" it in a whitelist
   // of valid tokens. If an id is not present in this cache it is considered
   // "revoked" or "invalid".
   const register = async token => {
-    const payload = jwt.decode(token)
+    const payload = decode(token)
 
     if (!payload.jti) throw new Error('No token ID')
     if (!cache) throw new Error('No cache defined')
@@ -180,7 +145,7 @@ const authenticationFrom = async ({
   // whitelist of valid tokens. If an id is not present in this cache it is
   // considered "revoked" or "invalid".
   const revoke = async token => {
-    const payload = jwt.decode(token)
+    const payload = decode(token)
 
     if (!payload.jti) throw new Error('No token ID')
     if (!cache) throw new Error('No cache defined')
@@ -195,7 +160,7 @@ const authenticationFrom = async ({
   // Checks to see if the token's id exists in the cache (a whitelist) to
   // determine if the token can still be considered "active", or if it is "revoked".
   const verifyActive = async token => {
-    const payload = jwt.decode(token)
+    const payload = decode(token)
 
     if (!payload.jti) throw new Error('No token ID')
     if (!cache || !allowList) throw new Error('No cache defined')
@@ -237,11 +202,57 @@ const authenticationFrom = async ({
     return { ...strategies }
   }
 
+  const createAccessToken = async payload => {
+    const accessToken = await createToken({
+      payload,
+      issuer,
+      secret: accessOpts.secret,
+      expiresIn: accessOpts.expiresIn,
+      algorithm: accessOpts.algorithm,
+      subject: SUBJECTS.access
+    })
+
+    return accessToken
+  }
+
+  const createRefreshToken = async payload => {
+    const refreshToken = await createToken({
+      payload,
+      issuer,
+      secret: refreshOpts.secret,
+      expiresIn: refreshOpts.expiresIn,
+      algorithm: refreshOpts.algorithm,
+      subject: SUBJECTS.refresh
+    })
+
+    // Register new refresh token with whitelisted cache.
+    await register(refreshToken)
+
+    return refreshToken
+  }
+
+  // Transform a payload into an object containing two tokens: `accessToken` and
+  // `refreshToken`.
+  const createTokens = async payload => {
+    const [accessToken, refreshToken] = await Promise.all([
+      createAccessToken(payload),
+      createRefreshToken(payload)
+    ])
+
+    return {
+      payload,
+      tokens: {
+        accessToken,
+        refreshToken
+      }
+    }
+  }
+
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
   const refresh = async token => {
     try {
-      const { tokens } = await createTokens(jwt.decode(token))
+      const { tokens } = await createTokens(decode(token))
 
       // Remove the old refresh token and register the newly created one.
       const results = await Promise.all([
@@ -267,9 +278,6 @@ const authenticationFrom = async ({
     try {
       const rawPayload = await strategies[name](req)
       const { payload, tokens } = await createTokens(rawPayload)
-
-      // Register new refresh token with whitelisted cache.
-      await register(tokens.refreshToken)
 
       req[key] = {
         strategy: name,

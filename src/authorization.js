@@ -15,7 +15,7 @@ const createError = (status, msg) => {
 // part of the query string, or in the 'x-access-token' header.
 // The authorization header is two string separated by a space, the first chunk
 // being "Bearer" the second being the token, like `Authorization: Bearer <token>`.
-const tokenFromReq = req => {
+const getTokenFrom = req => {
   const authHeaderParts = req?.headers?.authorization?.split(' ') || []
 
   if (authHeaderParts[0] === 'Bearer') {
@@ -27,20 +27,33 @@ const tokenFromReq = req => {
     || req.query.token // WARNING: should we support token in query params?
 }
 
+// Convenience function to return the current value of the cred(entials) to help
+// encapsulate the implementation details (in case we need to change them in the future).
+const getCredFrom = key => req => {
+  return req[key]
+}
+
 // Return a middleware that verifies a valid token and attaches its payload to
 // the request on `key` for use in other functions down the middleware chain.
 // TODO: This is pertty convoluted. Refactor to use authentication.verify()
 // instead of redefining it here (can't pass in through argument)
 const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req, res, next) => {
-  const token = tokenFromReq(req)
-  const options = { issuer, algorithms: [algorithm] }
-
-  const assignPayloadToReq = payload => {
-    req[key] = { payload, token }
+  const token = getTokenFrom(req)
+  const options = {
+    issuer,
+    algorithms: [algorithm]
   }
 
   if (!token) {
     return next(createError(401, 'No token provided'))
+  }
+
+  // WARNING: Mutates the express request object by appending cred(entials).
+  const addToReq = payload => {
+    req[key] = {
+      payload,
+      token
+    }
   }
 
   // If verify is not defined, verify the token directly.
@@ -51,7 +64,7 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req
     return jwt.verify(token, secret, options, (error, payload) => {
       if (error || !payload || !payload.jti) return next(error)
 
-      assignPayloadToReq(payload)
+      addToReq(payload)
 
       return next()
     })
@@ -60,7 +73,7 @@ const requireValidToken = (key, secret, issuer, algorithm, verify) => async (req
   try {
     const payload = await verify(token, secret, options)
 
-    assignPayloadToReq(payload)
+    addToReq(payload)
 
     return next()
   } catch (error) {
@@ -123,7 +136,7 @@ const requirePermission = (key, resourceName) => requiredActions => (req, res, n
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key]) {
-    return next(createError(400, `Cred auth attribute "${key}" missing in request`))
+    return next(createError(400, `Cred auth attribute '${key}' missing in request`))
   }
 
   if (!req[key].payload) {
@@ -171,7 +184,8 @@ const requireProp = key => (name, value) => (req, res, next) => {
 }
 
 module.exports = {
-  tokenFromReq,
+  getCredFrom,
+  getTokenFrom,
   createError,
   requireValidToken,
   requirePermission,
