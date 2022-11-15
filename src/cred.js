@@ -93,7 +93,7 @@ const credFrom = async (options = {}) => {
   // TODO: verify token `sub` before trying anything else (must be "access")
   const requireAccessToken = requireValidToken(
     key,
-    secretFromOpts(accessOpts),
+    secretFrom(accessOpts),
     issuer,
     accessOpts.algorithm
   )
@@ -101,7 +101,7 @@ const credFrom = async (options = {}) => {
   // TODO: verify token `sub` before trying anything else (must be "refresh")
   const requireRefreshToken = requireValidToken(
     key,
-    secretFromOpts(refreshOpts),
+    secretFrom(refreshOpts),
     issuer,
     refreshOpts.algorithm,
     authentication.verify
