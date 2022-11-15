@@ -232,6 +232,11 @@ const authenticationFrom = async ({
     return await allowList.list()
   }
 
+  // Return a new object so that internal strategies object cannot be externally mutated.
+  const getStrategies = () => {
+    return { ...strategies }
+  }
+
   // Assuming the token (should be refresh token) has already been authorized,
   // create new access and refresh tokens.
   const refresh = async token => {
@@ -291,6 +296,7 @@ const authenticationFrom = async ({
     verifyActive,
     verify,
     getCache,
+    getStrategies,
     revoke,
     register,
     refresh,

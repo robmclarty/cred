@@ -1,9 +1,10 @@
 const assert = require('assert').strict
 const crypto = require('crypto')
-const authenticationFrom = require('../src/authentication')
+const credFrom = require('../src/cred')
 
 const testConfig = {
   key: 'test-cred',
+  resource: 'test-resource',
   issuer: 'test-cred-issuer',
   cache: 'memory',
   accessOpts: {
@@ -29,36 +30,50 @@ const testPayload = {
 }
 
 describe('Authentication', () => {
-  let auth
+  let cred
 
   beforeAll(async () => {
-    auth = await authenticationFrom(testConfig)
+    cred = await credFrom(testConfig)
   })
 
   test('init', () => {
-    assert.equal(auth.key, testConfig.key)
-    assert.equal(auth.issuer, testConfig.issuer)
+    assert.equal(cred.key, testConfig.key)
+    assert.equal(cred.issuer, testConfig.issuer)
   })
 
   test('uses strategy', () => {
-    const strategies = auth.use('test-strat', () => 'test strat')
+    const name = 'test-strat'
+    const msg = 'this is the test strat'
 
-    assert(Object.keys(strategies).includes('test-strat'))
-    assert.equal('test strat', strategies['test-strat']())
+    cred.use(name, () => msg)
+
+    const strategies = cred.getStrategies()
+
+    assert(Object.keys(strategies).includes(name))
+    assert.equal(strategies[name](), msg)
   })
 
-  test('unuses strategy', () => {
-    const strategies = auth.use('test-strat', () => 'test strat')
-    assert(Object.keys(strategies).includes('test-strat'))
+  test('un-uses strategy', () => {
+    const name = 'test-strat'
+    const msg = 'this is the test strat'
 
-    const updatedStrategies = auth.unuse('test-strat')
-    assert(!Object.keys(updatedStrategies).includes('test-strat'))
+    cred.use(name, () => msg)
+
+    const strategies = cred.getStrategies()
+
+    assert(Object.keys(strategies).includes(name))
+
+    cred.unuse(name)
+
+    const updatedStrategies = cred.getStrategies()
+
+    assert(!Object.keys(updatedStrategies).includes(name))
   })
 
   test('create raw token', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
@@ -93,7 +108,7 @@ describe('Authentication', () => {
   })
 
   test('create access token', async () => {
-    const token = await auth.createAccessToken(testPayload)
+    const token = await cred.createAccessToken(testPayload)
 
     const tokenParts = token.split('.')
     const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString('utf8'))
@@ -105,7 +120,7 @@ describe('Authentication', () => {
   })
 
   test('create refresh token', async () => {
-    const token = await auth.createRefreshToken(testPayload)
+    const token = await cred.createRefreshToken(testPayload)
 
     const tokenParts = token.split('.')
     const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString('utf8'))
@@ -115,7 +130,7 @@ describe('Authentication', () => {
   })
 
   test('create access/refresh tokens', async () => {
-    const { payload, tokens } = await auth.createTokens(testPayload)
+    const { payload, tokens } = await cred.createTokens(testPayload)
 
     assert.deepEqual(payload, testPayload)
     assert(Object.keys(tokens).includes('accessToken'))
@@ -141,21 +156,21 @@ describe('Authentication', () => {
   test('register', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
       algorithm,
       expiresIn: '1 day'
     })
-    const payload = auth.decode(token)
-    const registeredToken = await auth.register(token)
-    const registeredPayload = auth.decode(registeredToken)
+    const payload = cred.decode(token)
+    const registeredToken = await cred.register(token)
+    const registeredPayload = cred.decode(registeredToken)
 
     assert(registeredToken)
     assert.equal(registeredPayload.jti, payload.jti)
 
-    const allowList = await auth.getCache()
+    const allowList = await cred.getCache()
 
     // WARNING: this is specific to the memory/lru cache (NOT redis)
     const cachedToken = allowList.find(el => el[1].value === payload.jti)
@@ -166,14 +181,14 @@ describe('Authentication', () => {
   test('verify valid token', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
       algorithm,
       expiresIn: '1 day'
     })
-    const isValid = await auth.verify(token, secret)
+    const isValid = await cred.verify(token, secret)
 
     assert(isValid)
   })
@@ -182,7 +197,7 @@ describe('Authentication', () => {
   test('verify expired token', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
@@ -190,7 +205,7 @@ describe('Authentication', () => {
     })
 
     try {
-      await auth.verify(token, secret)
+      await cred.verify(token, secret)
       assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /TokenExpiredError/)
@@ -198,8 +213,8 @@ describe('Authentication', () => {
   })
 
   test('verify access token', async () => {
-    const token = await auth.createAccessToken(testPayload)
-    const isValid = await auth.verify(token, testConfig.accessOpts.secret)
+    const token = await cred.createAccessToken(testPayload)
+    const isValid = await cred.verify(token, testConfig.accessOpts.secret)
 
     assert(isValid)
   })
@@ -207,14 +222,14 @@ describe('Authentication', () => {
   // Refresh tokens must not only be valid JWTs but must also currently exist in
   // the allow-list.
   test('verify refresh token', async () => {
-    const token = await auth.createRefreshToken({
+    const token = await cred.createRefreshToken({
       ...testPayload,
       expiresIn: '1 day'
     })
 
-    await auth.register(token)
+    await cred.register(token)
 
-    const isValid = await auth.verify(token, testConfig.refreshOpts.secret)
+    const isValid = await cred.verify(token, testConfig.refreshOpts.secret)
 
     assert(isValid)
   })
@@ -222,7 +237,7 @@ describe('Authentication', () => {
   test('verify token is active', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
@@ -230,9 +245,9 @@ describe('Authentication', () => {
       expiresIn: '1 day'
     })
 
-    await auth.register(token)
+    await cred.register(token)
 
-    const isActive = await auth.verifyActive(token)
+    const isActive = await cred.verifyActive(token)
 
     assert(isActive)
   })
@@ -241,7 +256,7 @@ describe('Authentication', () => {
   test('verify token is NOT active', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
@@ -249,7 +264,7 @@ describe('Authentication', () => {
     })
 
     try {
-      await auth.verifyActive(token)
+      await cred.verifyActive(token)
       assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
@@ -259,7 +274,7 @@ describe('Authentication', () => {
   test('verify expired token is NOT active', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
-    const token = await auth.createToken({
+    const token = await cred.createToken({
       payload: testPayload,
       issuer: testConfig.issuer,
       secret,
@@ -267,10 +282,10 @@ describe('Authentication', () => {
       expiresIn: -100
     })
 
-    await auth.register(token)
+    await cred.register(token)
 
     try {
-      await auth.verifyActive(token)
+      await cred.verifyActive(token)
       assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
@@ -278,8 +293,8 @@ describe('Authentication', () => {
   })
 
   test('refresh', async () => {
-    const { payload, tokens } = await auth.createTokens(testPayload)
-    const refreshedTokens = await auth.refresh(tokens.refreshToken)
+    const { payload, tokens } = await cred.createTokens(testPayload)
+    const refreshedTokens = await cred.refresh(tokens.refreshToken)
 
     assert(Object.keys(refreshedTokens).includes('refreshToken'))
     assert(Object.keys(refreshedTokens).includes('accessToken'))
@@ -287,35 +302,35 @@ describe('Authentication', () => {
 
     try {
       // old refresh token should have been revoked
-      await auth.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+      await cred.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
       assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
     } finally {
       // new refresh token should be active (in the cache)
-      const newTokenIsActive = await auth.verify(refreshedTokens.refreshToken, testConfig.refreshOpts.secret)
+      const newTokenIsActive = await cred.verify(refreshedTokens.refreshToken, testConfig.refreshOpts.secret)
       assert(newTokenIsActive)
     }
   })
 
   test('revoke', async () => {
-    const token = await auth.createRefreshToken({
+    const token = await cred.createRefreshToken({
       ...testPayload,
       expiresIn: '1 day'
     })
 
-    await auth.register(token)
+    await cred.register(token)
 
-    const isActive = await auth.verifyActive(token)
+    const isActive = await cred.verifyActive(token)
 
     assert(isActive)
 
-    const revokedToken = await auth.revoke(token)
+    const revokedToken = await cred.revoke(token)
 
     assert.equal(revokedToken, token)
 
     try {
-      await auth.verify(token, testConfig.refreshOpts.secret)
+      await cred.verify(token, testConfig.refreshOpts.secret)
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
     }
@@ -327,19 +342,19 @@ describe('Authentication', () => {
       testAttr: 'example test attribute'
     }
 
-    auth.use('test-basic', req => testPayload)
+    cred.use('test-basic', req => testPayload)
 
-    await auth.authenticate('test-basic')(mockRequest, {}, () => {})
+    await cred.authenticate('test-basic')(mockRequest, {}, () => {})
 
     const { strategy, payload, tokens } = mockRequest[testConfig.key]
 
     assert.equal(strategy, 'test-basic')
     assert.deepEqual(payload, testPayload)
 
-    const isValidAccessToken = await auth.verify(tokens.accessToken, testConfig.accessOpts.secret)
+    const isValidAccessToken = await cred.verify(tokens.accessToken, testConfig.accessOpts.secret)
     assert(isValidAccessToken)
 
-    const isValidRefreshToken = await auth.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+    const isValidRefreshToken = await cred.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
     assert(isValidRefreshToken)
   })
 })
