@@ -152,7 +152,7 @@ const requirePermission = (key, resourceName) => requiredActions => (req, res, n
 
   // If the token payload has a set of actions for this app's name and those
   // actions include at least one of the requiredActions, proceed to next().
-  if (!permissions || !hasPermission(requiredActions, permissions)) {
+  if (!hasPermission(requiredActions, permissions)) {
     return next(createError(401, 'Insufficient permissions'))
   }
 

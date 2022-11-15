@@ -163,4 +163,58 @@ describe('Authorization', () => {
       assert.match(error.toString(), /missing in request/)
     })
   })
+
+  test('require permission with missing cred payload', async () => {
+    const mockRequest = {
+      ...mockRequestFrom(testAccessToken),
+      [testConfig.key]: {}
+    }
+
+    await cred.requirePermission('read:users')(mockRequest, {}, error => {
+      assert.match(error.toString(), /has no payload/)
+    })
+  })
+
+  test('require permission with missing permissions in payload', async () => {
+    const mockRequest = {
+      ...mockRequestFrom(testAccessToken),
+      [testConfig.key]: {
+        payload: {
+          userId: 123,
+          anotherAttribute: 'something else'
+        }
+      }
+    }
+
+    await cred.requirePermission('read:users')(mockRequest, {}, error => {
+      assert.match(error.toString(), /has no permissions/)
+    })
+  })
+
+  test('require permission with invalid permissions', async () => {
+    const mockRequest = mockRequestFrom(testAccessToken)
+
+    await cred.requireAccessToken(mockRequest, {}, () => {})
+    await cred.requirePermission('non-matching-permission')(mockRequest, {}, error => {
+      assert.match(error.toString(), /Insufficient permissions/)
+    })
+  })
+
+  test('require custom payload prop', async () => {
+    const mockRequest = mockRequestFrom(testAccessToken)
+
+    await cred.requireAccessToken(mockRequest, {}, () => {})
+    await cred.requireProp('userId', testPayload.userId)(mockRequest, {}, error => {
+      assert(!error)
+    })
+  })
+
+  test('require invalid custom payload prop', async () => {
+    const mockRequest = mockRequestFrom(testAccessToken)
+
+    await cred.requireAccessToken(mockRequest, {}, () => {})
+    await cred.requireProp('userId', 'invalid value')(mockRequest, {}, error => {
+      assert.match(error.toString(), /Insufficient priviledges/)
+    })
+  })
 })
