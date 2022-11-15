@@ -55,15 +55,15 @@ const makeAllowList = async (type = 'memory', options = {}) => {
     }
   }
 
-  const add = async (key, id, ttl) => {
+  const add = async (key, value, ttl) => {
     switch (type) {
       case 'redis':
-        await cache.client.set(key, id)
+        await cache.client.set(key, value)
         await cache.client.expire(key, ttl)
         break
       case 'memory':
       default:
-        cache.set(key, id, { ttl })
+        cache.set(key, value, { ttl })
     }
   }
 
@@ -74,6 +74,16 @@ const makeAllowList = async (type = 'memory', options = {}) => {
       case 'memory':
       default:
         return cache.delete(key)
+    }
+  }
+
+  const reset = async () => {
+    switch (type) {
+      case 'redis':
+        return await cache.disconnect() // TODO: make this `flush()` instead?
+      case 'memory':
+      default:
+        return cache.clear()
     }
   }
 
@@ -92,6 +102,7 @@ const makeAllowList = async (type = 'memory', options = {}) => {
     add,
     remove,
     get,
+    reset,
     close
   }
 }
