@@ -1,5 +1,5 @@
 'use strict'
 
-const gotCred = require('./cred')
+const credFrom = require('./cred')
 
-module.exports = gotCred
+module.exports = credFrom

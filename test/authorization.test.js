@@ -1,5 +1,5 @@
 const assert = require('assert').strict
-const credFrom = require('../src/cred')
+const credFrom = require('../src')
 
 const testConfig = {
   key: 'test-cred',
