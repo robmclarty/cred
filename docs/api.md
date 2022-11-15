@@ -29,18 +29,21 @@ what is used for each tokens' body/payload.
 You can name your strategy anything you like in the first parameter ;)
 
 ```javascript
-cred.use('basic', req => {
-  return User.findOne({ username: req.body.username })
-    .then(user => user.verifyPassword(req.body.password))
-    .then(isMatch => {      
-      if (!isMatch) throw 'Unauthorized: username or password do not match.'
+cred.use('basic', async req => {
+  const user = await User.findOne({ username: req.body.username })
+  const isMatch = await user.verifyPassword(req.body.password))
+         
+  if (!isMatch) {
+    throw new Error('Unauthorized: username or password do not match')
+  }
 
-      return {
-        name: 'My name',
-        id: '12345',
-        anotherAttribute: 'some-value'
-      }
-    })
+  const payload = {
+    name: 'My name',
+    id: '12345',
+    anotherAttribute: 'some-value'
+  }
+
+  return payload
 })
 ```
 
@@ -180,15 +183,25 @@ router.route('/my/amazing/endpoint')
   .post(cred.requireProp('isAdmin', true), (req, res, next) => {})
 ```
 
-### `tokenFromReq`
+### `getTokenFrom`
 
-Anywhere in your middleware you can use `tokenFromReq` to grab the current token
+Anywhere in your middleware you can use `getTokenFrom` to grab the current token
 from the request object that you pass it. This will return the raw JSON Web
 Token  that was passed, and detected, by Cred in base64.
 
 ```javascript
 const postStuff = (req, res, next) => {
-  const token = tokenFromReq(req)
+  const token = cred.getTokenFrom(req)
+}
+```
+
+### `getCredFrom`
+
+Anywhere in your middleware you can use `getCredFrom()` to grab the current request's `token` as well as its decoded `payload` using this function.
+
+```javascript
+const postStuff = (req, res, next) => {
+  const { payload, token } = cred.getCredFrom(req)
 }
 ```
 
@@ -199,7 +212,7 @@ too if you like it. It simply creates a new `Error` object and assigns it a
 message and attaches a `status` to it.
 
 ```javascript
-const myError = createError(401, 'you are not authorized to access this resource')
+const myError = cred.createError(401, 'you are not authorized')
 ```
 
 ## Settings

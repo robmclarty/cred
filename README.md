@@ -35,10 +35,10 @@ function called `verifyPassword` which returns a boolean if the credentials
 matched or not):
 
 ```javascript
-const gotCred = require('cred');
-const User = require('./models/User');
+const credFrom = require('cred')
+const User = require('./models/User')
 
-const cred = gotCred({
+const cred = credFrom({
   issuer: 'my-issuer-name',
   accessOpts: {
     secret: 'my-super-secret-secret',
@@ -48,21 +48,24 @@ const cred = gotCred({
     secret: 'my-other-super-secret-secret',
     expiresIn: '1 week'
   }
-});
+})
 
-cred.use('basic', req => {
-  return User.findOne({ username: req.body.username })
-    .then(user => user.verifyPassword(req.body.password))
-    .then(isMatch => {      
-      if (!isMatch) throw 'Unauthorized: username or password do not match.'
+cred.use('basic', async req => {
+  const user = await User.findOne({ username: req.body.username })
+  const isMatch = await user.verifyPassword(req.body.password))
+         
+  if (!isMatch) {
+    throw new Error('Unauthorized: username or password do not match')
+  }
 
-      return {
-        name: 'My name',
-        id: '12345',
-        anotherAttribute: 'some-value'
-      };
-    });
-});
+  const payload = {
+    name: 'My name',
+    id: '12345',
+    anotherAttribute: 'some-value'
+  }
+
+  return payload
+})
 ```
 
 The way credentials are verified is totally up to you. Throw, if the credentials
@@ -128,23 +131,33 @@ You can revoke and refresh a token like this:
 
 ```javascript
 router.route('/logout')
-  .delete(cred.requireRefreshToken, (req, res, next) => {
-    cred.revoke(req.cred.token)
-      .then(revokedToken => res.json({
+  .delete(cred.requireRefreshToken, async (req, res, next) => {
+    try {
+      const revokedToken = await cred.revoke(req.cred.token)
+      
+      res.json({
         message: 'Logged out.',
         token: revokedToken
-      }))
-      .catch(next);
+      })
+    } catch (error) {
+      next(error)
+    }
   });
 
 router.route('/refresh')
-  .post(cred.requireRefreshToken, (req, res, next) => {
-    cred.refresh(req.cred.token)
-      .then(freshTokens => res.json({
+  .post(cred.requireRefreshToken, async (req, res, next) => {
+    const { token } = cred.getCredFrom(req)
+
+    try {
+      const freshTokens = await cred.refresh(token)
+
+      res.json({
         message: 'Tokens refreshed.',
         tokens: freshTokens
       }))
-      .catch(next);
+    } catch (error) {
+      next(error)
+    }
   });
 ```
 

@@ -34,10 +34,9 @@ each module that is defined).
 
 ```javascript
 const { readFileSync } = require('fs')
-const gotCred = require('cred')
+const credFrom = require('cred')
 
 const options = {
-  resource: 'my-app-name',
   issuer: 'my-issuer-name',
   accessOpts: {
     privateKey: readFileSync('/my/access/private/key/path'),
@@ -54,7 +53,7 @@ const options = {
 
 const authorizeOnly = false
 
-const cred = gotCred(options, authorizeOnly)
+const cred = credFrom(options, authorizeOnly)
 
 cred.use('basic', req => {
   // define basic strat
@@ -81,16 +80,6 @@ into your system. By default it is called `cred` which may be the easiest name
 to remember as it already refers to its origin. However, you have the ability
 to name it anything you want by simply defining this property and giving it a
 different value.
-
-### `resource`
-
-A "resource" in this context is the name of the app/server which will be doing
-the authorization. That is, whenever a user requests data from a server you are
-protecting with Cred, the name of *that* server is the value you would use for
-this property. When you give a user a set of permissions for accessing a
-resource, it is this property's value which will be matched against the
-permissions in the user's token (see [permissions](./permissions.md) for more
-details on how permissions work with Cred).
 
 ### `issuer`
 
