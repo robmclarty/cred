@@ -63,7 +63,7 @@ const makeAllowList = async (type = 'memory', options = {}) => {
         break
       case 'memory':
       default:
-        cache.set(key, id, ttl)
+        cache.set(key, id, { ttl })
     }
   }
 
@@ -73,7 +73,7 @@ const makeAllowList = async (type = 'memory', options = {}) => {
         return await cache.client.del(key)
       case 'memory':
       default:
-        return cache.del(key)
+        return cache.delete(key)
     }
   }
 
