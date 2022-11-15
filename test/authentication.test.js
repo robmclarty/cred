@@ -191,6 +191,7 @@ describe('Authentication', () => {
 
     try {
       await auth.verify(token, secret)
+      assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /TokenExpiredError/)
     }
@@ -205,14 +206,20 @@ describe('Authentication', () => {
 
   // Refresh tokens must not only be valid JWTs but must also currently exist in
   // the allow-list.
-  test.skip('verify refresh token', async () => {
-    const token = await auth.createRefreshToken(testPayload)
+  test('verify refresh token', async () => {
+    const token = await auth.createRefreshToken({
+      ...testPayload,
+      expiresIn: '1 day'
+    })
+
+    await auth.register(token)
+
     const isValid = await auth.verify(token, testConfig.refreshOpts.secret)
 
     assert(isValid)
   })
 
-  test.skip('verify token is active', async () => {
+  test('verify token is active', async () => {
     const secret = 'my-test-secret'
     const algorithm = 'HS384'
     const token = await auth.createToken({
@@ -222,17 +229,117 @@ describe('Authentication', () => {
       algorithm,
       expiresIn: '1 day'
     })
+
+    await auth.register(token)
+
     const isActive = await auth.verifyActive(token)
 
     assert(isActive)
   })
 
+  // Do NOT register token in cache (should act as if revoked).
   test('verify token is NOT active', async () => {
+    const secret = 'my-test-secret'
+    const algorithm = 'HS384'
+    const token = await auth.createToken({
+      payload: testPayload,
+      issuer: testConfig.issuer,
+      secret,
+      algorithm
+    })
+
+    try {
+      await auth.verifyActive(token)
+      assert(false) // this shouldn't happen
+    } catch (error) {
+      assert.match(error.toString(), /Token has been revoked/)
+    }
   })
 
-  test.todo('authenticate')
+  test('verify expired token is NOT active', async () => {
+    const secret = 'my-test-secret'
+    const algorithm = 'HS384'
+    const token = await auth.createToken({
+      payload: testPayload,
+      issuer: testConfig.issuer,
+      secret,
+      algorithm,
+      expiresIn: -100
+    })
 
-  test.todo('refresh')
+    await auth.register(token)
 
-  test.todo('cat get catche list')
+    try {
+      await auth.verifyActive(token)
+      assert(false) // this shouldn't happen
+    } catch (error) {
+      assert.match(error.toString(), /Token has been revoked/)
+    }
+  })
+
+  test('refresh', async () => {
+    const { payload, tokens } = await auth.createTokens(testPayload)
+    const refreshedTokens = await auth.refresh(tokens.refreshToken)
+
+    assert(Object.keys(refreshedTokens).includes('refreshToken'))
+    assert(Object.keys(refreshedTokens).includes('accessToken'))
+    assert.notEqual(refreshedTokens.refreshToken, tokens.refreshToken)
+
+    try {
+      // old refresh token should have been revoked
+      await auth.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+      assert(false) // this shouldn't happen
+    } catch (error) {
+      assert.match(error.toString(), /Token has been revoked/)
+    } finally {
+      // new refresh token should be active (in the cache)
+      const newTokenIsActive = await auth.verify(refreshedTokens.refreshToken, testConfig.refreshOpts.secret)
+      assert(newTokenIsActive)
+    }
+  })
+
+  test('revoke', async () => {
+    const token = await auth.createRefreshToken({
+      ...testPayload,
+      expiresIn: '1 day'
+    })
+
+    await auth.register(token)
+
+    const isActive = await auth.verifyActive(token)
+
+    assert(isActive)
+
+    const revokedToken = await auth.revoke(token)
+
+    assert.equal(revokedToken, token)
+
+    try {
+      await auth.verify(token, testConfig.refreshOpts.secret)
+    } catch (error) {
+      assert.match(error.toString(), /Token has been revoked/)
+    }
+  })
+
+  test('authenticate', async () => {
+    const mockRequest = {}
+    const testPayload = {
+      testAttr: 'example test attribute'
+    }
+
+    auth.use('test-basic', req => testPayload)
+
+    await auth.authenticate('test-basic')(mockRequest, {}, () => {})
+
+    const { strategy, payload, tokens } = mockRequest[testConfig.key]
+
+    assert.equal(strategy, 'test-basic')
+    assert.deepEqual(payload, testPayload)
+
+    const isValidAccessToken = await auth.verify(tokens.accessToken, testConfig.accessOpts.secret)
+    assert(isValidAccessToken)
+
+    const isValidRefreshToken = await auth.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+    assert(isValidRefreshToken)
+  })
 })
