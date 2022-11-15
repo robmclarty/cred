@@ -186,7 +186,7 @@ const authenticationFrom = async ({
   const revoke = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) throw new Error('No Token ID')
+    if (!payload.jti) throw new Error('No token ID')
     if (!cache) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
@@ -201,13 +201,13 @@ const authenticationFrom = async ({
   const verifyActive = async token => {
     const payload = jwt.decode(token)
 
-    if (!payload.jti) throw new Error('No Token ID')
+    if (!payload.jti) throw new Error('No token ID')
     if (!cache || !allowList) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
-    const cachedToken = await allowList.get(cacheKey)
+    const cachedTokenId = await allowList.get(cacheKey)
 
-    if (!cachedToken) throw new Error('Token has been revoked')
+    if (!cachedTokenId) throw new Error('Token has been revoked')
 
     return payload
   }
@@ -220,7 +220,11 @@ const authenticationFrom = async ({
         if (error || !payload || !payload.jti) return reject(error)
 
         if (payload.sub && payload.sub === SUBJECTS.refresh) {
-          await verifyActive(token)
+          try {
+            await verifyActive(token)
+          } catch (error) {
+            return reject(error)
+          }
         }
 
         resolve(payload)
