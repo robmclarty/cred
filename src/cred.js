@@ -1,11 +1,5 @@
 const authenticationFrom = require('./authentication')
-const {
-  requireValidToken,
-  requireResourcePermission,
-  requirePropIn,
-  createError,
-  tokenFromReq
-} = require('./authorization')
+const authorization = require('./authorization')
 
 const DEFAULT_ALGORITHM = 'HS384'
 
@@ -70,10 +64,6 @@ const credFrom = async (options = {}) => {
     refreshOpts
   }
 
-  const requirePermission = requireResourcePermission(key, resource)
-
-  const requireProp = requirePropIn(key)
-
   const authentication = await authenticationFrom({
     key,
     issuer,
@@ -90,8 +80,12 @@ const credFrom = async (options = {}) => {
     }
   })
 
+  const requirePermission = authorization.requirePermission(key, resource)
+
+  const requireProp = authorization.requireProp(key)
+
   // TODO: verify token `sub` before trying anything else (must be "access")
-  const requireAccessToken = requireValidToken(
+  const requireAccessToken = authorization.requireValidToken(
     key,
     secretFrom(accessOpts),
     issuer,
@@ -99,7 +93,7 @@ const credFrom = async (options = {}) => {
   )
 
   // TODO: verify token `sub` before trying anything else (must be "refresh")
-  const requireRefreshToken = requireValidToken(
+  const requireRefreshToken = authorization.requireValidToken(
     key,
     secretFrom(refreshOpts),
     issuer,
@@ -107,19 +101,19 @@ const credFrom = async (options = {}) => {
     authentication.verify
   )
 
-  const authorization = {
+  const authorizations = {
     requireAccessToken,
     requireRefreshToken,
     requirePermission,
     requireProp,
-    tokenFromReq,
-    createError
+    tokenFromReq: authorization.tokenFromReq,
+    createError: authorization.createError
   }
 
   return {
     ...settings,
     ...authentication,
-    ...authorization
+    ...authorizations
   }
 }
 

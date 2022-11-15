@@ -119,7 +119,7 @@ const hasPermission = (requiredActions, permittedActions) => {
 //   "exp": 1448652911,
 //   "iss": "cred-issuer"
 // }
-const requireResourcePermission = (key, resourceName) => requiredActions => (req, res, next) => {
+const requirePermission = (key, resourceName) => requiredActions => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key]) {
@@ -152,7 +152,7 @@ const requireResourcePermission = (key, resourceName) => requiredActions => (req
   next()
 }
 
-const requirePropIn = key => (name, value) => (req, res, next) => {
+const requireProp = key => (name, value) => (req, res, next) => {
   // Expect `req[key]` to exist with a payload attribute (would have been
   // created by requireValidToken()).
   if (!req[key]) {
@@ -174,6 +174,6 @@ module.exports = {
   tokenFromReq,
   createError,
   requireValidToken,
-  requireResourcePermission,
-  requirePropIn
+  requirePermission,
+  requireProp
 }
