@@ -30,10 +30,10 @@ const testPayload = {
 }
 
 describe('Authentication', () => {
-  let cred
+  const cred = credFrom(testConfig)
 
   beforeAll(async () => {
-    cred = await credFrom(testConfig)
+    await cred.init()
   })
 
   test('init', () => {

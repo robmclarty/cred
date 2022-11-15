@@ -37,12 +37,12 @@ const mockRequestFrom = token => {
 }
 
 describe('Authorization', () => {
-  let cred
+  const cred = credFrom(testConfig)
   let testAccessToken
   let testRefreshToken
 
   beforeAll(async () => {
-    cred = await credFrom(testConfig)
+    await cred.init()
     testAccessToken = await cred.createAccessToken(testPayload)
     testRefreshToken = await cred.createRefreshToken(testPayload)
   })

@@ -11,8 +11,8 @@ const initRedis = async url => {
   await client.connect()
 
   return (req, res, next) => {
-    req.authentik.cache.type = 'redis'
-    req.authentik.cache.client = client
+    req.cred.cache.type = 'redis'
+    req.cred.cache.client = client
     next()
   }
 }
@@ -25,14 +25,18 @@ const initLRU = async () => {
   })
 }
 
-const makeAllowList = async (type = 'memory', options = {}) => {
+const makeAllowList = (type = 'memory', options = {}) => {
   const {
     redisUrl = ''
   } = options
 
-  const cache = type === 'redis'
-    ? await initRedis(redisUrl)
-    : await initLRU()
+  let cache
+
+  const init = async () => {
+    cache = type === 'redis'
+      ? await initRedis(redisUrl)
+      : await initLRU()
+  }
 
   const list = async () => {
     switch (type) {
@@ -98,6 +102,7 @@ const makeAllowList = async (type = 'memory', options = {}) => {
   }
 
   return {
+    init,
     list,
     add,
     remove,

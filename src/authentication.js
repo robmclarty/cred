@@ -88,7 +88,7 @@ const createToken = async ({
   })
 }
 
-const authenticationFrom = async ({
+const authenticationFrom = ({
   key,
   issuer,
   cache,
@@ -101,7 +101,11 @@ const authenticationFrom = async ({
 
   // A registry of currently active (allowed) jwtid values. If an id is not in
   // the allow list, its access_token will be rejected.
-  const allowList = await makeAllowList(cache)
+  const allowList = makeAllowList(cache)
+
+  const init = async () => {
+    await allowList.init()
+  }
 
   // Stores an authentication strategy (a function) which is defined by the user
   // and should return an object which will be passed into the tokenPayload
@@ -297,6 +301,7 @@ const authenticationFrom = async ({
     cache,
     accessOpts,
     refreshOpts,
+    init,
     use,
     unuse,
     decode,

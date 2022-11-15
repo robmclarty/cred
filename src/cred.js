@@ -33,7 +33,7 @@ const secretFrom = (opts = {}, isPrivate = false) => {
  * Create a new cred instance from options which will hold some internal state
  * within its closure for things like auth strats, and allow-list cache.
  */
-const credFrom = async (options = {}) => {
+const credFrom = (options = {}) => {
   const {
     key = 'cred',
     issuer = 'cred-issuer',
@@ -62,7 +62,7 @@ const credFrom = async (options = {}) => {
     refreshOpts
   }
 
-  const authentication = await authenticationFrom({
+  const authentication = authenticationFrom({
     key,
     issuer,
     cache,
@@ -111,10 +111,16 @@ const credFrom = async (options = {}) => {
     requireProp
   }
 
+  // Group all initialization routines here.
+  const init = async () => {
+    await authentication.init()
+  }
+
   return {
     ...settings,
     ...authentication,
-    ...authorizations
+    ...authorizations,
+    init // override authentication.init()
   }
 }
 

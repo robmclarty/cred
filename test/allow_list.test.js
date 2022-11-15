@@ -2,10 +2,10 @@ const assert = require('assert').strict
 const makeAllowList = require('../src/allow_list')
 
 describe('Allow List', () => {
-  let lruList
+  const lruList = makeAllowList('memory')
 
   beforeAll(async () => {
-    lruList = await makeAllowList('memory')
+    await lruList.init()
   })
 
   beforeEach(async () => {
