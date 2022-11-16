@@ -1,19 +1,19 @@
 const assert = require('assert').strict
-const makeAllowList = require('../src/allow_list')
+const makeAllowlist = require('../src/allowlist')
 
 describe('Allow List', () => {
-  const lruList = makeAllowList('memory')
+  const memList = makeAllowlist('memory')
 
   beforeAll(async () => {
-    await lruList.init()
+    await memList.init()
   })
 
   beforeEach(async () => {
-    await lruList.reset()
+    await memList.reset()
   })
 
   afterAll(async () => {
-    await lruList.close()
+    await memList.close()
   })
 
   test('can add and list LRU cache', async () => {
@@ -21,9 +21,9 @@ describe('Allow List', () => {
     const value = '123'
     const ttl = 100
 
-    await lruList.add(key, value, ttl)
+    await memList.add(key, value, ttl)
 
-    const list = await lruList.list()
+    const list = await memList.list()
 
     assert.equal(list[0][0], key)
     assert.equal(list[0][1].value, value)
@@ -34,9 +34,9 @@ describe('Allow List', () => {
     const key = 'my-key'
     const value = '123'
 
-    await lruList.add(key, value)
+    await memList.add(key, value)
 
-    const fetchedValue = await lruList.get(key)
+    const fetchedValue = await memList.get(key)
 
     assert.equal(fetchedValue, value)
   })
@@ -45,10 +45,10 @@ describe('Allow List', () => {
     const key = 'my-key'
     const value = '123'
 
-    await lruList.add(key, value)
-    await lruList.remove(key)
+    await memList.add(key, value)
+    await memList.remove(key)
 
-    const fetchedValue = await lruList.get(key)
+    const fetchedValue = await memList.get(key)
 
     assert(!fetchedValue)
   })
@@ -58,9 +58,9 @@ describe('Allow List', () => {
     const value = '123'
     const ttl = -100
 
-    await lruList.add(key, value, ttl)
+    await memList.add(key, value, ttl)
 
-    const fetchedValue = await lruList.get(key)
+    const fetchedValue = await memList.get(key)
 
     assert(!fetchedValue)
   })

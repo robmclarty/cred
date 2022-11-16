@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken')
 const { nanoid } = require('nanoid')
-const makeAllowlist = require('./allow_list')
+const makeAllowlist = require('./allowlist')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
 
