@@ -120,7 +120,7 @@ const credFrom = (options = {}) => {
     ...settings,
     ...authentication,
     ...authorizations,
-    init // override authentication.init()
+    init
   }
 }
 
