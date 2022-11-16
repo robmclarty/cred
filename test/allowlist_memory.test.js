@@ -24,8 +24,9 @@ describe('Allow List: Memory', () => {
     await memList.add(key, value, ttl)
 
     const list = await memList.list()
+    const cacheKey = memList.makeCacheKey(key)
 
-    assert.equal(list[0][0], key)
+    assert.equal(list[0][0], cacheKey)
     assert.equal(list[0][1].value, value)
     assert.equal(list[0][1].ttl, ttl)
   })

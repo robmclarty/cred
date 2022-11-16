@@ -34,6 +34,8 @@ const initLRU = async () => {
   })
 }
 
+const makeCacheKey = (name, key) => `${name}:${key}`
+
 const makeAllowlist = (type = 'memory', options = {}) => {
   const {
     name = 'allowlist',
@@ -51,8 +53,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const list = async () => {
     switch (type) {
       case 'redis':
-        // TODO
-        return
+        return cache.hGetAll(name)
       case 'memory':
       default:
         return cache.dump()
@@ -60,34 +61,40 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   }
 
   const get = async key => {
+    const cacheKey = makeCacheKey(name, key)
+
     switch (type) {
       case 'redis':
-        return await cache.get(key)
+        return await cache.get(cacheKey)
       case 'memory':
       default:
-        return cache.get(key)
+        return cache.get(cacheKey)
     }
   }
 
   const add = async (key, value, ttl) => {
+    const cacheKey = makeCacheKey(name, key)
+
     switch (type) {
       case 'redis':
-        await cache.set(key, value)
-        await cache.expire(key, ttl)
+        await cache.set(cacheKey, value)
+        await cache.expire(cacheKey, ttl)
         break
       case 'memory':
       default:
-        cache.set(key, value, { ttl })
+        cache.set(cacheKey, value, { ttl })
     }
   }
 
   const remove = async key => {
+    const cacheKey = makeCacheKey(name, key)
+
     switch (type) {
       case 'redis':
-        return await cache.del(key)
+        return await cache.del(cacheKey)
       case 'memory':
       default:
-        return cache.delete(key)
+        return cache.delete(cacheKey)
     }
   }
 
@@ -125,7 +132,8 @@ const makeAllowlist = (type = 'memory', options = {}) => {
     remove,
     get,
     reset,
-    close
+    close,
+    makeCacheKey: key => makeCacheKey(name, key)
   }
 }
 
