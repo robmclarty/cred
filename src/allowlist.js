@@ -2,22 +2,28 @@ const LRU = require('lru-cache')
 const redis = require('redis')
 
 // Create a new Redis client and attach it to the Express request object.
-const initRedis = async url => {
+// TODO: configure ssl connection? https://github.com/redis/node-redis/blob/master/docs/client-configuration.md
+const initRedis = async (name, url) => {
   const client = redis.createClient({
-    url,
-    legacyMode: true
+    name: 'allowlist',
+    url
   })
 
-  client.on('connect', () => console.log('Authentik connected to Redis'))
-  client.on('error', err => console.log('Authentik Redis Error: ', err))
+  // TODO: perhaps pass in a custom logger function?
+  client.on('error', err => console.error('client error', err));
+  client.on('connect', () => console.log('client is connect'));
+  client.on('reconnecting', () => console.log('client is reconnecting'));
+  client.on('ready', () => console.log('client is ready'));
+
+  // client.on('error', error => console.log('Cred Redis Error: ', error))
+  // client.on('connect', () => console.log('Cred connected to Redis'))
+  // client.on('ready', () => console.log('Cred Redis ready'))
+  // client.on('reconnecting', () => console.log('Cred Redis reconnecting...'))
+  // client.on('end', () => console.log('Cred quit from Redis'))
 
   await client.connect()
 
-  return (req, res, next) => {
-    req.cred.cache.type = 'redis'
-    req.cred.cache.client = client
-    next()
-  }
+  return client
 }
 
 // Create a new LRU client
@@ -30,6 +36,7 @@ const initLRU = async () => {
 
 const makeAllowlist = (type = 'memory', options = {}) => {
   const {
+    name = 'allowlist',
     redisUrl = ''
   } = options
 
@@ -37,7 +44,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
   const init = async () => {
     cache = type === 'redis'
-      ? await initRedis(redisUrl)
+      ? await initRedis(name, redisUrl)
       : await initLRU()
   }
 
@@ -65,8 +72,8 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const add = async (key, value, ttl) => {
     switch (type) {
       case 'redis':
-        await cache.client.set(key, value)
-        await cache.client.expire(key, ttl)
+        await cache.set(key, value)
+        await cache.expire(key, ttl)
         break
       case 'memory':
       default:
@@ -77,7 +84,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const remove = async key => {
     switch (type) {
       case 'redis':
-        return await cache.client.del(key)
+        return await cache.del(key)
       case 'memory':
       default:
         return cache.delete(key)
@@ -87,7 +94,8 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const reset = async () => {
     switch (type) {
       case 'redis':
-        return await cache.disconnect() // TODO: make this `flush()` instead?
+        return
+        //return await cache.quit() // TODO: make this `flush()` instead?
       case 'memory':
       default:
         return cache.clear()
@@ -97,7 +105,13 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const close = async () => {
     switch (type) {
       case 'redis':
-        return await cache.disconnect()
+        // client.flushall(function (err, reply) {
+        //   client.hkeys('hash key', function (err, replies) {
+        //     console.log("key set done")
+        //     client.quit()
+        //   })
+        // })
+        return await cache.quit()
       case 'memory':
       default:
         return cache.clear()

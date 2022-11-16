@@ -1,7 +1,7 @@
 const assert = require('assert').strict
 const makeAllowlist = require('../src/allowlist')
 
-describe('Allow List', () => {
+describe('Allow List: Memory', () => {
   const memList = makeAllowlist('memory')
 
   beforeAll(async () => {
@@ -16,7 +16,7 @@ describe('Allow List', () => {
     await memList.close()
   })
 
-  test('can add and list LRU cache', async () => {
+  test('can add and list cache', async () => {
     const key = 'my-key'
     const value = '123'
     const ttl = 100
@@ -30,7 +30,7 @@ describe('Allow List', () => {
     assert.equal(list[0][1].ttl, ttl)
   })
 
-  test('can get an added value from LRU cache', async () => {
+  test('can get an added value from cache', async () => {
     const key = 'my-key'
     const value = '123'
 
@@ -41,7 +41,7 @@ describe('Allow List', () => {
     assert.equal(fetchedValue, value)
   })
 
-  test('can remove a value from LRU cache', async () => {
+  test('can remove a value from cache', async () => {
     const key = 'my-key'
     const value = '123'
 
@@ -53,7 +53,7 @@ describe('Allow List', () => {
     assert(!fetchedValue)
   })
 
-  test('expired value from LRU cache', async () => {
+  test('expired value from cache', async () => {
     const key = 'my-key'
     const value = '123'
     const ttl = -100
