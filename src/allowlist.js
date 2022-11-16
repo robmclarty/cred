@@ -53,10 +53,15 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const list = async () => {
     switch (type) {
       case 'redis':
-        return cache.hGetAll(name)
+        const keys = await cache.keys(`${name}:*`)
+        const values = await Promise.all(keys.map(async key => {
+          return cache.get(key)
+        }))
+
+        return values
       case 'memory':
       default:
-        return cache.dump()
+        return cache.dump() // TODO: only return an array of values?
     }
   }
 
@@ -65,7 +70,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
     switch (type) {
       case 'redis':
-        return await cache.get(cacheKey)
+        return cache.get(cacheKey)
       case 'memory':
       default:
         return cache.get(cacheKey)
@@ -77,9 +82,9 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
     switch (type) {
       case 'redis':
-        await cache.set(cacheKey, value)
-        await cache.expire(cacheKey, ttl)
-        break
+        return cache.set(cacheKey, value, {
+          PX: ttl
+        })
       case 'memory':
       default:
         cache.set(cacheKey, value, { ttl })
@@ -91,7 +96,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
     switch (type) {
       case 'redis':
-        return await cache.del(cacheKey)
+        return cache.del(cacheKey)
       case 'memory':
       default:
         return cache.delete(cacheKey)
@@ -101,8 +106,14 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const reset = async () => {
     switch (type) {
       case 'redis':
+        const keys = await cache.keys(`${name}:*`)
+
+        // Only attempt to use del() if there is something to delete.
+        if (Array.isArray(keys) && keys.length > 0) {
+          await cache.del(keys)
+        }
+
         return
-        //return await cache.quit() // TODO: make this `flush()` instead?
       case 'memory':
       default:
         return cache.clear()
@@ -112,13 +123,9 @@ const makeAllowlist = (type = 'memory', options = {}) => {
   const close = async () => {
     switch (type) {
       case 'redis':
-        // client.flushall(function (err, reply) {
-        //   client.hkeys('hash key', function (err, replies) {
-        //     console.log("key set done")
-        //     client.quit()
-        //   })
-        // })
-        return await cache.quit()
+        await reset()
+
+        return cache.quit()
       case 'memory':
       default:
         return cache.clear()
