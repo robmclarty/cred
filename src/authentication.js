@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken')
 const { nanoid } = require('nanoid')
-const makeAllowList = require('./allow_list')
+const makeAllowlist = require('./allow_list')
 
 const TOKEN_CACHE_LABEL = 'cred:token'
 
@@ -101,10 +101,10 @@ const authenticationFrom = ({
 
   // A registry of currently active (allowed) jwtid values. If an id is not in
   // the allow list, its access_token will be rejected.
-  const allowList = makeAllowList(cache)
+  const allowlist = makeAllowlist(cache)
 
   const init = async () => {
-    await allowList.init()
+    await allowlist.init()
   }
 
   // Stores an authentication strategy (a function) which is defined by the user
@@ -140,7 +140,7 @@ const authenticationFrom = ({
     const nowInSeconds = Math.floor(Date.now() / 1000)
     const maxAge = payload.exp - nowInSeconds
 
-    await allowList.add(cacheKey, payload.jti, maxAge)
+    await allowlist.add(cacheKey, payload.jti, maxAge)
 
     return token
   }
@@ -156,7 +156,7 @@ const authenticationFrom = ({
 
     const cacheKey = cacheKeyFor(payload.jti)
 
-    await allowList.remove(cacheKey)
+    await allowlist.remove(cacheKey)
 
     return token
   }
@@ -167,10 +167,10 @@ const authenticationFrom = ({
     const payload = decode(token)
 
     if (!payload.jti) throw new Error('No token ID')
-    if (!cache || !allowList) throw new Error('No cache defined')
+    if (!cache || !allowlist) throw new Error('No cache defined')
 
     const cacheKey = cacheKeyFor(payload.jti)
-    const cachedTokenId = await allowList.get(cacheKey)
+    const cachedTokenId = await allowlist.get(cacheKey)
 
     if (!cachedTokenId) throw new Error('Token has been revoked')
 
@@ -198,7 +198,7 @@ const authenticationFrom = ({
   }
 
   const getCache = async () => {
-    return await allowList.list()
+    return await allowlist.list()
   }
 
   // Return a new object so that internal strategies object cannot be externally mutated.

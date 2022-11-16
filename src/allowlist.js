@@ -3,7 +3,10 @@ const redis = require('redis')
 
 // Create a new Redis client and attach it to the Express request object.
 const initRedis = async url => {
-  const client = redis.createClient({ url })
+  const client = redis.createClient({
+    url,
+    legacyMode: true
+  })
 
   client.on('connect', () => console.log('Authentik connected to Redis'))
   client.on('error', err => console.log('Authentik Redis Error: ', err))
@@ -25,7 +28,7 @@ const initLRU = async () => {
   })
 }
 
-const makeAllowList = (type = 'memory', options = {}) => {
+const makeAllowlist = (type = 'memory', options = {}) => {
   const {
     redisUrl = ''
   } = options
@@ -112,4 +115,4 @@ const makeAllowList = (type = 'memory', options = {}) => {
   }
 }
 
-module.exports = makeAllowList
+module.exports = makeAllowlist
