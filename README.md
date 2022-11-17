@@ -19,12 +19,16 @@ become the payload of the JWTs returned by the module.
 
 The two most important things you need to do to use this are *configure* + *initialize* the module, and then provide it with at least one authentication "strategy" (a function you define which determines if someone provided the right credentials) which should simply return an object containing the payload you want to include in all tokens created using that strategy.
 
-So, for example, if you wanted to implement a simple username + password strat,
+### Configuration
+
+If you wanted to implement a simple username + password strat,
 you could initialize the module like this (this is assuming you have, in this
 case, some sort of "model" module called 'User' for fetching user state from
 a store + that model's property `password` is the result of a hash produced by
 the library `bcrypt`... these aren't necessary, but are sufficient for this
 real-world example):
+
+`cred.js`
 
 ```javascript
 const credFrom = require('cred')
@@ -61,6 +65,8 @@ cred.use('basic', async req => {
 
   return jwtPayload
 })
+
+module.exports = cred
 ```
 
 The way credentials are verified is totally up to you. You can `throw`, if the credentials
@@ -74,22 +80,73 @@ need to `catch` those errors right here ;) But you could override Cred's
 behaviour in your own catch if you prefer, and respond to the error in your own
 way.
 
-Later, you can use the `cred.authenticate(stratName)` as a middleware in your
+What I usually like to do is put all this configuration code in a separate file
+called `cred.js` alongside my Express app's `app.js` and export the configured
+`cred` instance. Modules act as closures and can thus be used like singletons,
+so any subsequent imports of the module will reference the same configured
+instance.
+
+### Initialization
+
+The main Express app also needs to initialize Cred's allow-list store (e.g.,
+uses a simple memory store by default, or can be set to use Redis instead).
+
+*NOTE*: This is an asynchronous operation, so you'll need to take that into
+account with how you setup your app.
+
+I usually like separating my "app" from my "server" so that I can more easily
+isolate the app for testing purposes, separate from actually launching the server.
+
+#### Server
+
+`server.js`
+
+```javascript
+const createApp = require('./app')
+
+createApp().then(app => {
+  app.listen(3000)
+})
+```
+
+#### App
+
+You can use the `cred.authenticate(stratName)` as a middleware in your
 routes to require the above credentials before proceeding to the next middleware
 in your chain like this (just remember to use the same name you defined in the
 above function; here we called it 'basic'):
 
+`app.js`
+
 ```javascript
-const router = require('express').Router();
+const express = require('express')
+const cred = require('./cred') // assuming this is a file like the example above
 
-router.route('/login').post(cred.authenticate('basic'), (req, res, next) => {
-  // Do authenticated things here.
+const createApp = async () => {
+  const app = express()
 
-  res.json({
-    message: 'Login successful.',
-    tokens: req.cred.tokens
+  // call cred's initialize function here
+  await cred.init()
+
+  app.post('/login', cred.authenticate('basic'), (req, res, next) => {
+    const { tokens } = req.cred
+
+    res.json({
+      message: 'Login successful',
+      tokens
+    })
   })
-});
+
+  app.get('/authenticated', cred.requireAccessToken, (req, res, next) => {
+    res.json({
+      message: 'Your access token is authenticated'
+    })
+  })
+
+  return app
+}
+
+module.exports = createApp
 ```
 
 What happens when you use the above middleware is that Cred will add an
@@ -122,6 +179,9 @@ expire on its own). If the user's refresh token was revoked, or if it
 expired on its own, the user will be required to provide authentic credentials
 once again through the login process in order to get new tokens.
 
+
+### Revoke ("logout")
+
 You can revoke and refresh a token like this:
 
 ```javascript
@@ -137,7 +197,11 @@ router.route('/logout').delete(cred.requireRefreshToken, async (req, res, next) 
     next(error)
   }
 });
+```
 
+### Refresh
+
+```javascript
 router.route('/refresh').post(cred.requireRefreshToken, async (req, res, next) => {
   const { token } = cred.getCredFrom(req)
 
@@ -147,7 +211,7 @@ router.route('/refresh').post(cred.requireRefreshToken, async (req, res, next) =
     res.json({
       message: 'Tokens refreshed.',
       tokens: freshTokens
-    }))
+    })
   } catch (error) {
     next(error)
   }
