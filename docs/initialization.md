@@ -51,9 +51,7 @@ const options = {
   }
 }
 
-const authorizeOnly = false
-
-const cred = credFrom(options, authorizeOnly)
+const cred = credFrom(options)
 
 cred.use('basic', req => {
   // define basic strat
@@ -61,6 +59,10 @@ cred.use('basic', req => {
 
 cred.use('facebook', req => {
   // define facebook strat
+})
+
+cred.use('google', req => {
+  // define google strat
 })
 
 module.exports = cred
@@ -201,18 +203,3 @@ Time until token expires (same as `access`).
 #### `algorithm`
 
 The algorithm used to sign the token (same as `access`)
-
-## Authorize Only
-
-The second parameter of the Cred initialization function is a boolean value
-called `authorizeOnly` which tells Cred which mode to start in. By default, this
-value is set to `false` which loads the full package and is used for
-token-generating servers which will be accepting login credentials and outputting
-JWTs.
-
-If, however, you are creating a separate server which will work alongside an
-already existing authentication server and all you need is to be able to read
-incoming tokens with each request and determine if they are valid or not, then
-you can set this value to `true` and only load the parts of the package you
-need (i.e., without all the refresh token stuff). This is a minor optimization
-but one that loads less stuff in your RAM if that's a concern.

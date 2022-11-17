@@ -30,8 +30,9 @@ You can name your strategy anything you like in the first parameter ;)
 
 ```javascript
 cred.use('basic', async req => {
-  const user = await User.findOne({ username: req.body.username })
-  const isMatch = await user.verifyPassword(req.body.password)
+  const { username, password } = req.body
+  const user = await User.findOne({ username })
+  const isMatch = await user.verifyPassword(password)
          
   if (!isMatch) {
     throw new Error('Unauthorized: username or password do not match')
