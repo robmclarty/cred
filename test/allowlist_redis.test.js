@@ -1,5 +1,5 @@
 const assert = require('assert').strict
-const makeAllowlist = require('../src/allowlist')
+const makeAllowlist = require('../lib/allowlist')
 
 const delay = milliseconds => new Promise(resolve => {
   setTimeout(resolve, milliseconds)

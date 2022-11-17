@@ -1,5 +1,5 @@
 const assert = require('assert').strict
-const makeAllowlist = require('../src/allowlist')
+const makeAllowlist = require('../lib/allowlist')
 
 describe('Allow List: Memory', () => {
   const memList = makeAllowlist('memory')
