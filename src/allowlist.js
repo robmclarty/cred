@@ -10,16 +10,10 @@ const initRedis = async (name, url) => {
   })
 
   // TODO: perhaps pass in a custom logger function?
-  client.on('error', err => console.error('client error', err));
-  client.on('connect', () => console.log('client is connect'));
-  client.on('reconnecting', () => console.log('client is reconnecting'));
-  client.on('ready', () => console.log('client is ready'));
-
-  // client.on('error', error => console.log('Cred Redis Error: ', error))
-  // client.on('connect', () => console.log('Cred connected to Redis'))
-  // client.on('ready', () => console.log('Cred Redis ready'))
-  // client.on('reconnecting', () => console.log('Cred Redis reconnecting...'))
-  // client.on('end', () => console.log('Cred quit from Redis'))
+  client.on('error', err => console.error('client error', err))
+  client.on('connect', () => console.log('client is connect'))
+  client.on('reconnecting', () => console.log('client is reconnecting'))
+  client.on('ready', () => console.log('client is ready'))
 
   await client.connect()
 
@@ -52,13 +46,14 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
   const list = async () => {
     switch (type) {
-      case 'redis':
+      case 'redis': {
         const keys = await cache.keys(`${name}:*`)
         const values = await Promise.all(keys.map(async key => {
           return cache.get(key)
         }))
 
         return values
+      }
       case 'memory':
       default:
         return cache.dump() // TODO: only return an array of values?
@@ -105,7 +100,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
 
   const reset = async () => {
     switch (type) {
-      case 'redis':
+      case 'redis': {
         const keys = await cache.keys(`${name}:*`)
 
         // Only attempt to use del() if there is something to delete.
@@ -114,6 +109,7 @@ const makeAllowlist = (type = 'memory', options = {}) => {
         }
 
         return
+      }
       case 'memory':
       default:
         return cache.clear()

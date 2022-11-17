@@ -5,7 +5,6 @@ const delay = milliseconds => new Promise(resolve => {
   setTimeout(resolve, milliseconds)
 })
 
-
 describe('Allow List: Redis', () => {
   const redisList = makeAllowlist('redis', {
     redisUrl: 'redis://localhost:6379'

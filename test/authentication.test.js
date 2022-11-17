@@ -290,7 +290,7 @@ describe('Authentication', () => {
   })
 
   test('refresh', async () => {
-    const { payload, tokens } = await cred.createTokens(testPayload)
+    const { tokens } = await cred.createTokens(testPayload)
     const refreshedTokens = await cred.refresh(tokens.refreshToken)
 
     assert(Object.keys(refreshedTokens).includes('refreshToken'))
