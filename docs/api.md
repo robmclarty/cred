@@ -31,7 +31,7 @@ You can name your strategy anything you like in the first parameter ;)
 ```javascript
 cred.use('basic', async req => {
   const user = await User.findOne({ username: req.body.username })
-  const isMatch = await user.verifyPassword(req.body.password))
+  const isMatch = await user.verifyPassword(req.body.password)
          
   if (!isMatch) {
     throw new Error('Unauthorized: username or password do not match')
@@ -239,12 +239,3 @@ one in total, but this value is the name of *this* current resource server).
 The type of cache being used (e.g., `memory` or `redis`). Currently only memory
 cache is supported.
 
-### `accessOpts`
-
-Options used to create access tokens (see [initialization](./initialization.md)
-for more details).
-
-### `refreshOpts`
-
-Options used to create refresh tokens (see [initialization](./initialization.md)
-for more details).

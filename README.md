@@ -38,11 +38,11 @@ const UserModel = require('./models/User')
 
 const cred = credFrom({
   issuer: 'my-issuer-name',
-  accessOpts: {
+  access: {
     secret: 'my-super-secret-secret',
     expiresIn: '1 hour'
   },
-  refreshOpts: {
+  refresh: {
     secret: 'my-other-super-secret-secret',
     expiresIn: '1 week'
   }

@@ -38,13 +38,13 @@ const credFrom = require('cred')
 
 const options = {
   issuer: 'my-issuer-name',
-  accessOpts: {
+  access: {
     privateKey: readFileSync('/my/access/private/key/path'),
     publicKey: readFileSync('/my/access/public/key/path'),
     expiresIn: '24 hours',
     algorithm: 'ES384'
   },
-  refreshOpts: {
+  refresh: {
     secret: 'my_super_secret_secret',
     expiresIn: '7 days',
     algorithm: 'HS512'
@@ -99,7 +99,7 @@ not in this list will be considered invalid.
 Currently only "memory" is available for cacheing (and is the default) but plans
 are in place to add other options like "redis".
 
-### `accessOpts`
+### `access`
 
 All settings needed for defining "access tokens". Access tokens are short lived
 tokens used for accessing data from other resource servers (or from the issuing
@@ -168,12 +168,12 @@ The following algorithms are currently supported.
 These values are based on the [jws](https://github.com/brianloveswords/node-jws)
 package.
 
-### `refreshOpts`
+### `refresh`
 
 If this is for an authentication server (i.e., a server that will be generating
 new tokens based on login credentials) you can define separate parameters for
 the refresh tokens that get generated here. They are exactly the same as those
-used for the accessOpts above but separate so each token has its own security.
+used for the `access` above but separate so each token has its own security.
 
 Refresh tokens are longer lived tokens which are used, simply, or requesting
 new access tokens when your old access tokens have expired. All refresh tokens
@@ -184,23 +184,23 @@ token (i.e., log out).
 
 #### `secret`
 
-Secret string used for HMAC algorithms (same as accessOpts).
+Secret string used for HMAC algorithms (same as `access`).
 
 #### `privateKey`
 
-Private key string used for RSA and EC algorithms (same as accessOpts).
+Private key string used for RSA and EC algorithms (same as `access`).
 
 #### `publicKey`
 
-Public key string used for RSA and EC algorithms (same as accessOpts).
+Public key string used for RSA and EC algorithms (same as `access`).
 
 #### `expiresIn`
 
-Time until token expires (same as accessOpts).
+Time until token expires (same as `access`).
 
 #### `algorithm`
 
-The algorithm used to sign the token (same as accessOpts)
+The algorithm used to sign the token (same as `access`)
 
 ## Authorize Only
 
