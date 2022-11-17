@@ -12,6 +12,9 @@
   "engines": {
     "node": ">= 8.3.0"
   },
+  "files": [
+    "/lib"
+  ],
   "scripts": {
     "start": "",
     "test": "npx jest",
