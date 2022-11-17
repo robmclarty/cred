@@ -49,8 +49,9 @@ const cred = credFrom({
 })
 
 cred.use('basic', async req => {
-  const user = await UserModel.findOne({ username: req.body.username })
-  const isMatch = await bcrypt.compare(req.body.password, user.password)
+  const { username, password } = req.body
+  const user = await UserModel.findOne({ username })
+  const isMatch = await bcrypt.compare(password, user.password)
          
   if (!isMatch) {
     // (assuming there are Express error handler middlewares setup to catch)
@@ -129,7 +130,7 @@ const createApp = async () => {
   await cred.init()
 
   app.post('/login', cred.authenticate('basic'), (req, res, next) => {
-    const { tokens } = req.cred
+    const { tokens } = cred.getCred(req)
 
     res.json({
       message: 'Login successful',
@@ -186,8 +187,10 @@ You can revoke and refresh a token like this:
 
 ```javascript
 router.route('/logout').delete(cred.requireRefreshToken, async (req, res, next) => {
+  const { token } = cred.getCred(req)
+
   try {
-    const revokedToken = await cred.revoke(req.cred.token)
+    const revokedToken = await cred.revoke(token)
 
     res.json({
       message: 'Logged out.',
@@ -203,7 +206,7 @@ router.route('/logout').delete(cred.requireRefreshToken, async (req, res, next) 
 
 ```javascript
 router.route('/refresh').post(cred.requireRefreshToken, async (req, res, next) => {
-  const { token } = cred.getCredFrom(req)
+  const { token } = cred.getCred(req)
 
   try {
     const freshTokens = await cred.refresh(token)
