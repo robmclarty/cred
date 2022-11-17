@@ -6,12 +6,12 @@ const testConfig = {
   resource: 'test-resource',
   issuer: 'test-cred-issuer',
   cache: 'memory',
-  accessOpts: {
+  access: {
     secret: 'test-access-secret',
     expiresIn: '1 day',
     algorithm: 'HS384'
   },
-  refreshOpts: {
+  refresh: {
     secret: 'test-refresh-secret',
     expiresIn: '2 days',
     algorithm: 'HS384'
@@ -89,7 +89,7 @@ describe('Authorization', () => {
 
   test('require access token with invalid signature', async () => {
     const token = await cred.createToken({
-      ...testConfig.accessOpts,
+      ...testConfig.access,
       secret: 'invalid secret',
       subject: 'access',
       issuer: cred.issuer,
@@ -124,7 +124,7 @@ describe('Authorization', () => {
 
   test('require refresh token with invalid signature', async () => {
     const token = await cred.createToken({
-      ...testConfig.refreshOpts,
+      ...testConfig.refresh,
       secret: 'invalid secret',
       subject: 'refresh',
       issuer: cred.issuer,

@@ -12,13 +12,13 @@ const SUPPORTED_PUBLIC_KEY_ALGORITHMS = [
   'ES512'
 ]
 
-const secretFrom = (opts = {}, isPrivate = false) => {
+const secretFrom = (options = {}, isPrivate = false) => {
   const {
     secret = 'default-secret',
     privateKey = '',
     publicKey = '',
     algorithm = DEFAULT_ALGORITHM
-  } = opts
+  } = options
 
   const key = isPrivate
     ? privateKey
@@ -38,14 +38,14 @@ const credFrom = (options = {}) => {
     key = 'cred',
     issuer = 'cred-issuer',
     cache = 'memory',
-    accessOpts = {
+    access = {
       secret: 'access-secret',
       privateKey: '',
       publicKey: '',
-      expiresIn: '24 hours',
+      expiresIn: '1 hour',
       algorithm: DEFAULT_ALGORITHM
     },
-    refreshOpts = {
+    refresh = {
       secret: 'refresh-secret',
       privateKey: '',
       publicKey: '',
@@ -57,24 +57,22 @@ const credFrom = (options = {}) => {
   const settings = {
     key,
     issuer,
-    cache,
-    accessOpts,
-    refreshOpts
+    cache
   }
 
   const authentication = authenticationFrom({
     key,
     issuer,
     cache,
-    accessOpts: {
-      secret: secretFrom(accessOpts, true),
-      expiresIn: accessOpts.expiresIn,
-      algorithm: accessOpts.algorithm
+    access: {
+      secret: secretFrom(access, true),
+      expiresIn: access.expiresIn,
+      algorithm: access.algorithm
     },
-    refreshOpts: {
-      secret: secretFrom(refreshOpts, true),
-      expiresIn: refreshOpts.expiresIn,
-      algorithm: refreshOpts.algorithm
+    refresh: {
+      secret: secretFrom(refresh, true),
+      expiresIn: refresh.expiresIn,
+      algorithm: refresh.algorithm
     }
   })
 
@@ -87,17 +85,17 @@ const credFrom = (options = {}) => {
   // TODO: verify token `sub` before trying anything else (must be "access")
   const requireAccessToken = authorization.requireValidToken(
     key,
-    secretFrom(accessOpts),
+    secretFrom(access),
     issuer,
-    accessOpts.algorithm
+    access.algorithm
   )
 
   // TODO: verify token `sub` before trying anything else (must be "refresh")
   const requireRefreshToken = authorization.requireValidToken(
     key,
-    secretFrom(refreshOpts),
+    secretFrom(refresh),
     issuer,
-    refreshOpts.algorithm,
+    refresh.algorithm,
     authentication.verify
   )
 

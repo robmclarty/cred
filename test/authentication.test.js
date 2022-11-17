@@ -7,12 +7,12 @@ const testConfig = {
   resource: 'test-resource',
   issuer: 'test-cred-issuer',
   cache: 'memory',
-  accessOpts: {
+  access: {
     secret: 'test-access-secret',
     expiresIn: '1 day',
     algorithm: 'HS384'
   },
-  refreshOpts: {
+  refresh: {
     secret: 'test-refresh-secret',
     expiresIn: '2 days',
     algorithm: 'HS384'
@@ -214,7 +214,7 @@ describe('Authentication', () => {
 
   test('verify access token', async () => {
     const token = await cred.createAccessToken(testPayload)
-    const isValid = await cred.verify(token, testConfig.accessOpts.secret)
+    const isValid = await cred.verify(token, testConfig.access.secret)
 
     assert(isValid)
   })
@@ -226,7 +226,7 @@ describe('Authentication', () => {
       ...testPayload,
       expiresIn: '1 day'
     })
-    const isValid = await cred.verify(token, testConfig.refreshOpts.secret)
+    const isValid = await cred.verify(token, testConfig.refresh.secret)
 
     assert(isValid)
   })
@@ -299,13 +299,13 @@ describe('Authentication', () => {
 
     try {
       // old refresh token should have been revoked
-      await cred.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+      await cred.verify(tokens.refreshToken, testConfig.refresh.secret)
       assert(false) // this shouldn't happen
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
     } finally {
       // new refresh token should be active (in the cache)
-      const newTokenIsActive = await cred.verify(refreshedTokens.refreshToken, testConfig.refreshOpts.secret)
+      const newTokenIsActive = await cred.verify(refreshedTokens.refreshToken, testConfig.refresh.secret)
       assert(newTokenIsActive)
     }
   })
@@ -323,7 +323,7 @@ describe('Authentication', () => {
     assert.equal(revokedToken, token)
 
     try {
-      await cred.verify(token, testConfig.refreshOpts.secret)
+      await cred.verify(token, testConfig.refresh.secret)
     } catch (error) {
       assert.match(error.toString(), /Token has been revoked/)
     }
@@ -344,10 +344,10 @@ describe('Authentication', () => {
     assert.equal(strategy, 'test-basic')
     assert.deepEqual(payload, testPayload)
 
-    const isValidAccessToken = await cred.verify(tokens.accessToken, testConfig.accessOpts.secret)
+    const isValidAccessToken = await cred.verify(tokens.accessToken, testConfig.access.secret)
     assert(isValidAccessToken)
 
-    const isValidRefreshToken = await cred.verify(tokens.refreshToken, testConfig.refreshOpts.secret)
+    const isValidRefreshToken = await cred.verify(tokens.refreshToken, testConfig.refresh.secret)
     assert(isValidRefreshToken)
   })
 })

@@ -92,8 +92,8 @@ const authenticationFrom = ({
   key,
   issuer,
   cache,
-  accessOpts = {},
-  refreshOpts = {}
+  access: accessOpts = {},
+  refresh: refreshOpts = {}
 }) => {
   // A set of functions to be used for verifying authentication and generating
   // token payloads.
