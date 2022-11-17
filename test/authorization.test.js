@@ -49,7 +49,7 @@ describe('Authorization', () => {
 
   test('get token from request', async () => {
     const mockRequest = mockRequestFrom(testAccessToken)
-    const reqToken = cred.getTokenFrom(mockRequest)
+    const reqToken = cred.getToken(mockRequest)
 
     assert.equal(reqToken, testAccessToken)
   })
@@ -59,7 +59,7 @@ describe('Authorization', () => {
 
     await cred.requireAccessToken(mockRequest, {}, () => {})
 
-    const { payload, token } = cred.getCredFrom(mockRequest)
+    const { payload, token } = cred.getCred(mockRequest)
 
     assert.equal(token, testAccessToken)
     assert.equal(payload.sub, 'access')
@@ -72,7 +72,7 @@ describe('Authorization', () => {
 
     await cred.requireAccessToken(mockRequest, {}, () => {})
 
-    const { payload } = cred.getCredFrom(mockRequest)
+    const { payload } = cred.getCred(mockRequest)
 
     assert.equal(payload.sub, 'access')
     assert.equal(payload.userId, testPayload.userId)
@@ -107,7 +107,7 @@ describe('Authorization', () => {
 
     await cred.requireRefreshToken(mockRequest, {}, () => {})
 
-    const { payload } = cred.getCredFrom(mockRequest)
+    const { payload } = cred.getCred(mockRequest)
 
     assert.equal(payload.sub, 'refresh')
     assert.equal(payload.userId, testPayload.userId)
