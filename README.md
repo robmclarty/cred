@@ -1,13 +1,15 @@
 # Got Cred?
 
-Cred is a flexible authentication and authorization middleware for express apps
+Cred is a flexible authentication and authorization middleware for
+[Express](https://expressjs.com/) apps
 which uses JSON Web Tokens. It is meant to be unobtrusive and let you decide
 where data is stored, how cred(entials) are determined to be valid, and what the
 structure of the JWT's payload looks like.
 
-All you need to do is give Cred a function which takes parameters from the
-request's body, validates them, and then returns an object literal which will
-become the payload of the JWTs returned by the system.
+Using the built-in Express middleware `cred.authenticate('my-strat')` you can
+authenticate an endpoint by providing parameters from the
+request's body, validate them, and then return an object literal which will
+become the payload of the JWTs returned by the module.
 
 ## Install
 
@@ -15,28 +17,20 @@ become the payload of the JWTs returned by the system.
 
 ## Usage
 
-See [cred-auth-manager](https://github.com/robmclarty/cred-auth-manager) for a
-non-trivial reference implementation of Cred. It is an example app that can act
-as a central authentication hub for an optionally distributed system. You can
-use it out of the box directly, modify it, or simply refer to it as an example.
-
----
-
-The two most important things you need to do to use this is *initialize* the
-module, and then provide it with at least one authentication "strategy" (a
-function you define which determines if someone provided the right credentials)
-which should simply return an object containing the payload you want to
-include in all tokens created using that strategy.
+The two most important things you need to do to use this are *configure* + *initialize* the module, and then provide it with at least one authentication "strategy" (a function you define which determines if someone provided the right credentials) which should simply return an object containing the payload you want to include in all tokens created using that strategy.
 
 So, for example, if you wanted to implement a simple username + password strat,
 you could initialize the module like this (this is assuming you have, in this
-case, a [mongoose](http://mongoosejs.com/) model called 'User' which has a
-function called `verifyPassword` which returns a boolean if the credentials
-matched or not):
+case, some sort of "model" module called 'User' for fetching user state from
+a store + that model's property `password` is the result of a hash produced by
+the library `bcrypt`... these aren't necessary, but are sufficient for this
+real-world example):
 
 ```javascript
 const credFrom = require('cred')
-const User = require('./models/User')
+const bcrypt = require('bcrypt')
+
+const UserModel = require('./models/User')
 
 const cred = credFrom({
   issuer: 'my-issuer-name',
@@ -51,31 +45,32 @@ const cred = credFrom({
 })
 
 cred.use('basic', async req => {
-  const user = await User.findOne({ username: req.body.username })
-  const isMatch = await user.verifyPassword(req.body.password))
+  const user = await UserModel.findOne({ username: req.body.username })
+  const isMatch = await bcrypt.compare(req.body.password, user.password)
          
   if (!isMatch) {
+    // (assuming there are Express error handler middlewares setup to catch)
     throw new Error('Unauthorized: username or password do not match')
   }
 
-  const payload = {
+  const jwtPayload = {
     name: 'My name',
     id: '12345',
     anotherAttribute: 'some-value'
   }
 
-  return payload
+  return jwtPayload
 })
 ```
 
-The way credentials are verified is totally up to you. Throw, if the credentials
+The way credentials are verified is totally up to you. You can `throw`, if the credentials
 don't match, and return an object for the token payload if they do. That's all
-this function needs to do.
+this "strategy" function needs to do.
 
 You can `throw` an error message in this function as it is part of another
-Promise chain inside Cred which will handle outputting an error message with a
-401 error code as part of an Express middleware. As a result, you also don't
-need to `catch` those error right here ;) But you could override Cred's
+`Promise` chain inside Cred which will handle outputting an error message with a
+`401` error code as part of an Express middleware. As a result, you also don't
+need to `catch` those errors right here ;) But you could override Cred's
 behaviour in your own catch if you prefer, and respond to the error in your own
 way.
 
@@ -87,20 +82,20 @@ above function; here we called it 'basic'):
 ```javascript
 const router = require('express').Router();
 
-router.route('/login')
-  .post(cred.authenticate('basic'), (req, res, next) => {
-    // Do authenticated stuff here.
-    res.json({
-      message: 'Login successful.',
-      tokens: req.cred.tokens
-    })
-  });
+router.route('/login').post(cred.authenticate('basic'), (req, res, next) => {
+  // Do authenticated things here.
+
+  res.json({
+    message: 'Login successful.',
+    tokens: req.cred.tokens
+  })
+});
 ```
 
 What happens when you use the above middleware is that Cred will add an
 attribute to the Express request object called "cred" (you can override this
-with a different name if you like) which will contain two new JSON Web Tokens
-using the payload you defined in your strat.
+with a different name if you like by passing the configuration function a value
+for `key`) which will contain two new JSON Web Tokens using the payload you defined in your strat.
 
 These tokens can then be used to gain authorization to other parts of your app
 which can be set up to only accept valid JWTs. These tokens can also be stored
@@ -119,46 +114,44 @@ token is longer lived (again, up to you, but the default is 1 week). This
 ensures that any access token that is issued will "die on its own" and become
 invalid without doing anything else. But users have 1 week to "refresh" their
 token with a new one. When this is done, the refresh token is checked against an
-internal whitelist store which tracks all currently active (and valid) refresh
+internal allow-list store which tracks all currently active (and valid) refresh
 tokens. This way you have control over all refresh tokens issued and can revoke
 them as needed to prevent someone from getting new access tokens. When a user
 logs out, you simply need to revoke their refresh token (their access token will
-become invalid on its own). If the user's refresh token was revoked, or if it
+expire on its own). If the user's refresh token was revoked, or if it
 expired on its own, the user will be required to provide authentic credentials
 once again through the login process in order to get new tokens.
 
 You can revoke and refresh a token like this:
 
 ```javascript
-router.route('/logout')
-  .delete(cred.requireRefreshToken, async (req, res, next) => {
-    try {
-      const revokedToken = await cred.revoke(req.cred.token)
-      
-      res.json({
-        message: 'Logged out.',
-        token: revokedToken
-      })
-    } catch (error) {
-      next(error)
-    }
-  });
+router.route('/logout').delete(cred.requireRefreshToken, async (req, res, next) => {
+  try {
+    const revokedToken = await cred.revoke(req.cred.token)
 
-router.route('/refresh')
-  .post(cred.requireRefreshToken, async (req, res, next) => {
-    const { token } = cred.getCredFrom(req)
+    res.json({
+      message: 'Logged out.',
+      token: revokedToken
+    })
+  } catch (error) {
+    next(error)
+  }
+});
 
-    try {
-      const freshTokens = await cred.refresh(token)
+router.route('/refresh').post(cred.requireRefreshToken, async (req, res, next) => {
+  const { token } = cred.getCredFrom(req)
 
-      res.json({
-        message: 'Tokens refreshed.',
-        tokens: freshTokens
-      }))
-    } catch (error) {
-      next(error)
-    }
-  });
+  try {
+    const freshTokens = await cred.refresh(token)
+
+    res.json({
+      message: 'Tokens refreshed.',
+      tokens: freshTokens
+    }))
+  } catch (error) {
+    next(error)
+  }
+});
 ```
 
 When using either `cred.requireRefreshToken` or `cred.requireAccessToken` as
